@@ -1,0 +1,31 @@
+version: "3.9"
+
+services:
+  fastapi_service:
+    build: .
+    hostname: fastapi_service
+    container_name: fastapi_service
+    command: uvicorn main:app --host 0.0.0.0 --port 8080 --reload
+    depends_on:
+      - redis-cache
+    ports:
+      - "8000:8080"
+    env_file:
+      - .env
+    volumes:
+      - ./:/home/app
+
+  redis-cache:
+    image: redis:alpine
+    hostname: redis-cache
+    container_name: redis-cache
+    restart: on-failure
+    ports:
+      - '6379:6379'
+    command: redis-server
+    volumes:
+      - cache:/data
+
+volumes:
+  cache:
+    driver: local
