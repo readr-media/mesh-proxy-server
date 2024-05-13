@@ -14,6 +14,8 @@ services:
       - .env
     volumes:
       - ./:/home/app
+    networks:
+      - default
 
   redis-cache:
     image: redis:alpine
@@ -25,7 +27,13 @@ services:
     command: redis-server
     volumes:
       - cache:/data
+    networks:
+      - default
 
 volumes:
   cache:
     driver: local
+
+networks:
+  default:
+    driver: bridge

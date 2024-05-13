@@ -4,9 +4,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi_cache import FastAPICache
 from fastapi_cache.backends.redis import RedisBackend
 from fastapi_cache.decorator import cache
-
 from redis import asyncio as aioredis
+
 from src.gql import gql_query, Query
+# from src.config import startup
 import os
 import json
 
@@ -41,6 +42,11 @@ async def gql_get(query: str):
   response = json.dumps(gql_query(gql_endpoint, gql_string=query))
   return response
 
+@app.get("/index")
+@cache(expire=180)
+async def index():
+    return dict(hello="world")
+
 @app.post('/gql')
 @cache(expire=3600)
 async def gql_post(query: Query):
@@ -52,8 +58,9 @@ async def gql_post(query: Query):
   response = json.dumps(gql_query(gql_endpoint, gql_string=query, gql_variable=variable))
   return response
 
+    
 @app.on_event("startup")
 async def startup():
-  redis_endpoint = os.environ.get('REDIS_ENDPOINT', 'redis_cache:6379')
-  redis = aioredis.from_url(f"redis://{redis_endpoint}")
+  redis_endpoint = os.environ.get('REDIS_ENDPOINT', 'redis-cache:6379')
+  redis = aioredis.from_url(f"redis://{redis_endpoint}", encoding="utf8", decode_responses=True)
   FastAPICache.init(RedisBackend(redis), prefix="fastapi-cache")

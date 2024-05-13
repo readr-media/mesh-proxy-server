@@ -6,6 +6,6 @@ lxml==4.7.1
 pydantic==2.6.3
 aiohttp==3.8.1
 gql==3.0.0
-fastapi-cache2==0.2.1
-redis==5.0.4
+fastapi-cache2
+redis
 requests_toolbelt
