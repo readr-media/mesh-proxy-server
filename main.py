@@ -6,8 +6,9 @@ from fastapi_cache.backends.redis import RedisBackend
 from fastapi_cache.decorator import cache
 
 from redis import asyncio as aioredis
-from src.gql import gql_fetch
+from src.gql import gql_query, Query
 import os
+import json
 
 ### App related variables
 app = FastAPI()
@@ -32,13 +33,24 @@ async def health_checking():
 
 @app.get('/gql')
 @cache(expire=60)
-async def gql(query: str):
+async def gql_get(query: str):
   '''
-  Forward gql query to GQL server.
+  Forward gql query to GQL server by get method.
   '''
   gql_endpoint = os.environ['MESH_GQL_ENDPOINT']
-  response = gql_fetch(gql_endpoint, gql_string=query)
-  return {"message": response}
+  response = json.dumps(gql_query(gql_endpoint, gql_string=query))
+  return response
+
+@app.post('/gql')
+@cache(expire=3600)
+async def gql_post(query: Query):
+  '''
+  Forward gql query to GQL server by post method.
+  '''
+  gql_endpoint = os.environ['MESH_GQL_ENDPOINT']
+  query, variable = query.query, query.variable
+  response = json.dumps(gql_query(gql_endpoint, gql_string=query, gql_variable=variable))
+  return response
 
 @app.on_event("startup")
 async def startup():

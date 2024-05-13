@@ -1,8 +1,9 @@
 from gql.transport.requests import RequestsHTTPTransport
 from gql.transport.exceptions import TransportError
 from gql import gql, Client
+from pydantic import BaseModel
 
-def gql_fetch(gql_endpoint, gql_string):
+def gql_query(gql_endpoint, gql_string, gql_variable: None):
     '''
         gql_fetch is used to retrieve data
     '''
@@ -11,7 +12,17 @@ def gql_fetch(gql_endpoint, gql_string):
       gql_transport = RequestsHTTPTransport(url=gql_endpoint)
       gql_client = Client(transport=gql_transport,
                           fetch_schema_from_transport=True)
-      json_data = gql_client.execute(gql(gql_string))
+      if gql_variable:
+        json_data = gql_client.execute(gql(gql_string), variable_values=gql_variable)
+      else:
+        json_data = gql_client.execute(gql(gql_string))
     except TransportError as e:
       print("Transport Error:", e)
     return json_data
+  
+class Query(BaseModel):
+  query: str
+  variable: str = None
+
+class Response(BaseModel):
+  response: dict
