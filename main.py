@@ -26,39 +26,24 @@ app.add_middleware(
 
 ### API Design
 @app.get('/')
+@cache(expire=60)
 async def health_checking():
   '''
   Health checking API.
   '''
-  return {"message": "Health check for mesh-proxy-server"}
-
-@app.get('/gql')
-@cache(expire=60)
-async def gql_get(query: str):
-  '''
-  Forward gql query to GQL server by get method.
-  '''
-  gql_endpoint = os.environ['MESH_GQL_ENDPOINT']
-  response = json.dumps(gql_query(gql_endpoint, gql_string=query))
-  return response
-
-@app.get("/index")
-@cache(expire=180)
-async def index():
-    return dict(hello="world")
+  return dict(message="Health check for mesh-proxy-server")
 
 @app.post('/gql')
-@cache(expire=3600)
+@cache(expire=60)
 async def gql_post(query: Query):
   '''
   Forward gql query to GQL server by post method.
   '''
   gql_endpoint = os.environ['MESH_GQL_ENDPOINT']
   query, variable = query.query, query.variable
-  response = json.dumps(gql_query(gql_endpoint, gql_string=query, gql_variable=variable))
-  return response
+  response = gql_query(gql_endpoint, gql_string=query, gql_variable=variable)
+  return dict(response)
 
-    
 @app.on_event("startup")
 async def startup():
   redis_endpoint = os.environ.get('REDIS_ENDPOINT', 'redis-cache:6379')
