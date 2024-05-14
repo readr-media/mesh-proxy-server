@@ -19,7 +19,7 @@ def gql_query(gql_endpoint, gql_string, gql_variable: None):
     except TransportError as e:
       print("Transport Error:", e)
     return json_data
-  
+
 class Query(BaseModel):
   query: str
   variable: str = None

@@ -3,11 +3,11 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from fastapi_cache import FastAPICache
 from fastapi_cache.backends.redis import RedisBackend
-from fastapi_cache.decorator import cache
+from starlette.requests import Request
 from redis import asyncio as aioredis
 
 from src.gql import gql_query, Query
-# from src.config import startup
+from src.key_builder import gql_key_builder
 import os
 import json
 
@@ -23,10 +23,10 @@ app.add_middleware(
     allow_methods = methods,
     allow_headers = headers
 )
+NAMESPACE = 'dev'
 
 ### API Design
 @app.get('/')
-@cache(expire=60)
 async def health_checking():
   '''
   Health checking API.
@@ -36,14 +36,16 @@ async def health_checking():
 @app.post('/gql')
 async def gql_post(query: Query):
   '''
-  Forward gql query to GQL server by post method.
+  Forward gql query to GQL server by post method. 
+  Because post method is not cacheable in fastapi-cache, we should cache it manually.
   '''
   gql_endpoint = os.environ['MESH_GQL_ENDPOINT']
   query, variable, ttl = query.query, query.variable, query.ttl
   
   ### check cache in redis
-  redis = FastAPICache.get_backend()
-  cache_key = f"{query}_{variable}"[:30] # TODO: Design hash function
+  prefix = FastAPICache.get_prefix()
+  redis  = FastAPICache.get_backend()
+  cache_key = gql_key_builder(prefix, query.model_dump_json())
   cached_result = await redis.get(cache_key)
   if cached_result:
       return dict(json.loads(cached_result))
@@ -56,4 +58,4 @@ async def gql_post(query: Query):
 async def startup():
   redis_endpoint = os.environ.get('REDIS_ENDPOINT', 'redis-cache:6379')
   redis = aioredis.from_url(f"redis://{redis_endpoint}", encoding="utf8", decode_responses=True)
-  FastAPICache.init(RedisBackend(redis), prefix="fastapi-cache")
+  FastAPICache.init(RedisBackend(redis), prefix=f"cache-{NAMESPACE}")
