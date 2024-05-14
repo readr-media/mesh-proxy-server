@@ -34,14 +34,22 @@ async def health_checking():
   return dict(message="Health check for mesh-proxy-server")
 
 @app.post('/gql')
-@cache(expire=60)
 async def gql_post(query: Query):
   '''
   Forward gql query to GQL server by post method.
   '''
   gql_endpoint = os.environ['MESH_GQL_ENDPOINT']
-  query, variable = query.query, query.variable
+  query, variable, ttl = query.query, query.variable, query.ttl
+  
+  ### check cache in redis
+  redis = FastAPICache.get_backend()
+  cache_key = f"{query}_{variable}"[:30] # TODO: Design hash function
+  cached_result = await redis.get(cache_key)
+  if cached_result:
+      return dict(json.loads(cached_result))
+  ### cache misses
   response = gql_query(gql_endpoint, gql_string=query, gql_variable=variable)
+  await redis.set(cache_key, json.dumps(response), expire=ttl)
   return dict(response)
 
 @app.on_event("startup")

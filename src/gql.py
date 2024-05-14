@@ -23,6 +23,7 @@ def gql_query(gql_endpoint, gql_string, gql_variable: None):
 class Query(BaseModel):
   query: str
   variable: str = None
+  ttl: int=60
 
 class Response(BaseModel):
   response: dict
