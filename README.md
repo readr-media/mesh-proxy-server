@@ -10,8 +10,8 @@
 ![image](https://github.com/readr-media/mesh-proxy-server/assets/34787189/adf04813-083d-4723-9e60-6cc48a04730d)
 其中三個欄位分別解釋如下
 * query: GQL query
-* variable: GQL variable
-* ttl: time-to-live, 為快取在Proxy伺服器中的存活時間
+* (Optional) variable: GQL variable
+* (Optional) ttl: time-to-live, 為快取在Proxy伺服器中的存活時間
 
 ### 架構圖
 ![mesh-architecture](https://github.com/readr-media/mesh-proxy-server/assets/34787189/70335a4e-268f-4206-a141-4d5aca6af458)
