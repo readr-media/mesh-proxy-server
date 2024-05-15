@@ -28,9 +28,6 @@ app.add_middleware(
     allow_headers = headers
 )
 
-redis_host = os.environ.get("REDIS_HOST", "localhost")
-redis_port = int(os.environ.get("REDIS_PORT", 6379))
-redis_client = redis.StrictRedis(host=redis_host, port=redis_port)
 
 ### API Design
 @app.get('/')
@@ -41,9 +38,9 @@ async def health_checking():
   return dict(message="Health check for mesh-proxy-server")
 
 @app.get('/test')
+@cache(expire=60)
 async def test():
-  value = redis_client.incr("counter", 1)
-  return f"Visitor number: {value}"
+  return dict(message="test for mesh-proxy-server")
 
 @app.post('/gql')
 async def gql_post(query: Query):
@@ -69,9 +66,9 @@ async def gql_post(query: Query):
   await set_cache(backend, cache_key, json.dumps(response), ttl)
   return dict(response)
 
-# @app.on_event("startup")
-# async def startup():
-#   NAMESPACE = os.environ.get('NAMESPACE', 'dev')
-#   redis_endpoint = os.environ.get('REDIS_ENDPOINT', 'redis-cache:6379')
-#   redis = aioredis.from_url(f"redis://{redis_endpoint}", encoding="utf8", decode_responses=True)
-#   FastAPICache.init(RedisBackend(redis), prefix=f"cache-{NAMESPACE}")
+@app.on_event("startup")
+async def startup():
+  NAMESPACE = os.environ.get('NAMESPACE', 'dev')
+  redis_endpoint = os.environ.get('REDIS_ENDPOINT', 'redis-cache:6379')
+  redis = aioredis.from_url(f"redis://{redis_endpoint}", encoding="utf8", decode_responses=True)
+  FastAPICache.init(RedisBackend(redis), prefix=f"cache-{NAMESPACE}")
