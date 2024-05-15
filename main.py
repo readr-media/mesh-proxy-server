@@ -6,6 +6,8 @@ from fastapi_cache.backends.redis import RedisBackend
 from fastapi_cache.decorator import cache
 from starlette.responses import Response
 from redis import asyncio as aioredis
+import redis
+
 
 from src.gql import gql_query, Query
 from src.key_builder import gql_key_builder
@@ -26,6 +28,10 @@ app.add_middleware(
     allow_headers = headers
 )
 
+redis_host = os.environ.get("REDIS_HOST", "localhost")
+redis_port = int(os.environ.get("REDIS_PORT", 6379))
+redis_client = redis.StrictRedis(host=redis_host, port=redis_port)
+
 ### API Design
 @app.get('/')
 async def health_checking():
@@ -35,9 +41,9 @@ async def health_checking():
   return dict(message="Health check for mesh-proxy-server")
 
 @app.get('/test')
-@cache(expire=60)
 async def test():
-  return dict(message='Test for caching')
+  value = redis_client.incr("counter", 1)
+  return f"Visitor number: {value}"
 
 @app.post('/gql')
 async def gql_post(query: Query):
@@ -63,9 +69,9 @@ async def gql_post(query: Query):
   await set_cache(backend, cache_key, json.dumps(response), ttl)
   return dict(response)
 
-@app.on_event("startup")
-async def startup():
-  NAMESPACE = os.environ.get('NAMESPACE', 'dev')
-  redis_endpoint = os.environ.get('REDIS_ENDPOINT', 'redis-cache:6379')
-  redis = aioredis.from_url(f"redis://{redis_endpoint}", encoding="utf8", decode_responses=True)
-  FastAPICache.init(RedisBackend(redis), prefix=f"cache-{NAMESPACE}")
+# @app.on_event("startup")
+# async def startup():
+#   NAMESPACE = os.environ.get('NAMESPACE', 'dev')
+#   redis_endpoint = os.environ.get('REDIS_ENDPOINT', 'redis-cache:6379')
+#   redis = aioredis.from_url(f"redis://{redis_endpoint}", encoding="utf8", decode_responses=True)
+#   FastAPICache.init(RedisBackend(redis), prefix=f"cache-{NAMESPACE}")
