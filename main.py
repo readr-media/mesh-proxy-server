@@ -28,7 +28,6 @@ app.add_middleware(
     allow_headers = headers
 )
 
-
 ### API Design
 @app.get('/')
 async def health_checking():
@@ -36,11 +35,6 @@ async def health_checking():
   Health checking API. You can only use @cache decorator to get method.
   '''
   return dict(message="Health check for mesh-proxy-server")
-
-@app.get('/test')
-@cache(expire=60)
-async def test():
-  return dict(message="test for mesh-proxy-server")
 
 @app.post('/gql')
 async def gql_post(query: Query):
