@@ -3,11 +3,13 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from fastapi_cache import FastAPICache
 from fastapi_cache.backends.redis import RedisBackend
-from starlette.requests import Request
+from fastapi_cache.decorator import cache
+from starlette.responses import Response
 from redis import asyncio as aioredis
 
 from src.gql import gql_query, Query
 from src.key_builder import gql_key_builder
+from src.cache import get_cache, set_cache
 import os
 import json
 
@@ -27,9 +29,10 @@ NAMESPACE = 'dev'
 
 ### API Design
 @app.get('/')
+@cache(expire=60)
 async def health_checking():
   '''
-  Health checking API.
+  Health checking API. You can only use @cache decorator to get method.
   '''
   return dict(message="Health check for mesh-proxy-server")
 
@@ -40,18 +43,21 @@ async def gql_post(query: Query):
   Because post method is not cacheable in fastapi-cache, we should cache it manually.
   '''
   gql_endpoint = os.environ['MESH_GQL_ENDPOINT']
-  query, variable, ttl = query.query, query.variable, query.ttl
+  gql_string, gql_variable, ttl = query.query, query.variable, query.ttl
   
   ### check cache in redis
   prefix = FastAPICache.get_prefix()
-  redis  = FastAPICache.get_backend()
+  backend  = FastAPICache.get_backend()
   cache_key = gql_key_builder(prefix, query.model_dump_json())
-  cached_result = await redis.get(cache_key)
-  if cached_result:
-      return dict(json.loads(cached_result))
-  ### cache misses
-  response = gql_query(gql_endpoint, gql_string=query, gql_variable=variable)
-  await redis.set(cache_key, json.dumps(response), expire=ttl)
+  
+  # cache checking
+  cached_ttl, cached = await get_cache(backend, cache_key)
+  if cached:
+    print(f"{cache_key} hits")
+    return dict(json.loads(cached))
+  print(f"{cache_key} missed")
+  response = gql_query(gql_endpoint, gql_string=gql_string, gql_variable=gql_variable)
+  await set_cache(backend, cache_key, json.dumps(response), ttl)
   return dict(response)
 
 @app.on_event("startup")
