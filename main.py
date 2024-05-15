@@ -25,16 +25,19 @@ app.add_middleware(
     allow_methods = methods,
     allow_headers = headers
 )
-NAMESPACE = 'dev'
 
 ### API Design
 @app.get('/')
-@cache(expire=60)
 async def health_checking():
   '''
   Health checking API. You can only use @cache decorator to get method.
   '''
   return dict(message="Health check for mesh-proxy-server")
+
+@app.get('/test')
+@cache(expire=60)
+async def test():
+  return dict(message='Test for caching')
 
 @app.post('/gql')
 async def gql_post(query: Query):
@@ -62,6 +65,7 @@ async def gql_post(query: Query):
 
 @app.on_event("startup")
 async def startup():
+  NAMESPACE = os.environ.get('NAMESPACE', 'dev')
   redis_endpoint = os.environ.get('REDIS_ENDPOINT', 'redis-cache:6379')
   redis = aioredis.from_url(f"redis://{redis_endpoint}", encoding="utf8", decode_responses=True)
   FastAPICache.init(RedisBackend(redis), prefix=f"cache-{NAMESPACE}")
