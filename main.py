@@ -56,7 +56,7 @@ async def gql_post(query: Query):
   # cache checking
   cached_ttl, cached = await get_cache(backend, cache_key)
   if cached:
-    print(f"{cache_key} hits")
+    print(f"{cache_key} hits with ttl {cached_ttl}")
     return dict(json.loads(cached))
   print(f"{cache_key} missed")
   response = gql_query(gql_endpoint, gql_string=gql_string, gql_variable=gql_variable)
