@@ -4,7 +4,7 @@ from gql import gql, Client
 from pydantic import BaseModel
 import src.config as config 
 
-def gql_query(gql_endpoint, gql_string, gql_variable: None):
+def gql_query(gql_endpoint, gql_string: str=None, gql_variable: str=None):
     '''
         gql_fetch is used to retrieve data
     '''

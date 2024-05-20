@@ -7,7 +7,7 @@ from redis import asyncio as aioredis
 
 from src.gql import gql_query, Query
 from src.key_builder import gql_key_builder
-from src.cache import get_cache, set_cache
+from src.cache import check_cache_gql
 import os
 import json
 import src.config as config
@@ -33,6 +33,10 @@ async def health_checking():
   '''
   return dict(message="Health check for mesh-proxy-server")
 
+@app.post('/new_stories')
+async def new_stories():
+  return dict(message="new_stories")
+
 @app.post('/gql')
 async def gql_post(query: Query):
   '''
@@ -47,19 +51,20 @@ async def gql_post(query: Query):
   if ttl>config.MAX_GQL_TTL or ttl<config.MIN_GQL_TTL:
     return dict(message="Invalid input ttl")
   
-  ### check cache in redis
+  ### build cache key
   prefix = FastAPICache.get_prefix()
   backend  = FastAPICache.get_backend()
   cache_key = gql_key_builder(prefix, query.model_dump_json())
   
-  # cache checking
-  cached_ttl, cached = await get_cache(backend, cache_key)
-  if cached:
-    print(f"{cache_key} hits with ttl {cached_ttl}")
-    return dict(json.loads(cached))
-  print(f"{cache_key} missed")
-  response = gql_query(gql_endpoint, gql_string=gql_string, gql_variable=gql_variable)
-  await set_cache(backend, cache_key, json.dumps(response), ttl)
+  ### cache checking
+  response = await check_cache_gql(
+    backend = backend,
+    cache_key = cache_key,
+    gql_endpoint = gql_endpoint,
+    gql_string = gql_string,
+    gql_variable = gql_variable,
+    ttl = ttl
+  )
   return dict(response)
 
 @app.on_event("startup")
