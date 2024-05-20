@@ -4,7 +4,7 @@ from gql import gql, Client
 from pydantic import BaseModel
 import src.config as config 
 
-def gql_query(gql_endpoint, gql_string: str=None, gql_variable: str=None):
+def gql_query(gql_endpoint, gql_string: str=None, gql_variables: str=None):
     '''
         gql_fetch is used to retrieve data
     '''
@@ -13,8 +13,8 @@ def gql_query(gql_endpoint, gql_string: str=None, gql_variable: str=None):
       gql_transport = RequestsHTTPTransport(url=gql_endpoint)
       gql_client = Client(transport=gql_transport,
                           fetch_schema_from_transport=True)
-      if gql_variable:
-        json_data = gql_client.execute(gql(gql_string), variable_values=gql_variable)
+      if gql_variables:
+        json_data = gql_client.execute(gql(gql_string), variable_values=gql_variables)
       else:
         json_data = gql_client.execute(gql(gql_string))
     except TransportError as e:
@@ -23,7 +23,7 @@ def gql_query(gql_endpoint, gql_string: str=None, gql_variable: str=None):
 
 class Query(BaseModel):
   query: str
-  variable: str = None
+  variables: dict = None
   ttl: int = config.DEFAULT_GQL_TTL
 
 class LatestStories(BaseModel):

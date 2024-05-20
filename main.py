@@ -62,7 +62,7 @@ async def latest_stories(latestStories: LatestStories):
       cache_key = cache_key,
       gql_endpoint = gql_endpoint,
       gql_string = gql_stories_string,
-      gql_variable = None,
+      gql_variables = None,
       ttl = config.DEFAULT_LATEST_STORIES_TTL
     )
     stories = response.get('stories', [])
@@ -77,7 +77,7 @@ async def gql_post(query: Query):
   The range of ttl is [3,600], default is 60.
   '''
   gql_endpoint = os.environ['MESH_GQL_ENDPOINT']
-  gql_string, gql_variable, ttl = query.query, query.variable, query.ttl
+  gql_string, gql_variables, ttl = query.query, query.variables, query.ttl
   
   ### validate input data
   if ttl>config.MAX_GQL_TTL or ttl<config.MIN_GQL_TTL:
@@ -97,7 +97,7 @@ async def gql_post(query: Query):
     cache_key = cache_key,
     gql_endpoint = gql_endpoint,
     gql_string = gql_string,
-    gql_variable = gql_variable,
+    gql_variables = json.dumps(gql_variables),
     ttl = ttl
   )
   return dict(response)

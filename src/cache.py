@@ -16,12 +16,12 @@ async def set_cache(backend, cache_key: str, cache_value: str, ttl: int):
     except Exception:
         print(f"Error setting cache key '{cache_key}' from backend")
         
-async def check_cache_gql(backend, cache_key: str, gql_endpoint: str, gql_string: str, gql_variable: str = None, ttl: int = config.DEFAULT_GQL_TTL):
+async def check_cache_gql(backend, cache_key: str, gql_endpoint: str, gql_string: str, gql_variables: str = None, ttl: int = config.DEFAULT_GQL_TTL):
     cached_ttl, cached = await get_cache(backend, cache_key)
     if cached:
         print(f"{cache_key} hits with ttl {cached_ttl}")
         return dict(json.loads(cached))
     print(f"{cache_key} missed")
-    response = gql_query(gql_endpoint, gql_string=gql_string, gql_variable=gql_variable)
+    response = gql_query(gql_endpoint, gql_string=gql_string, gql_variables=gql_variables)
     await set_cache(backend, cache_key, json.dumps(response), ttl)
     return response
