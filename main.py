@@ -3,17 +3,14 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from fastapi_cache import FastAPICache
 from fastapi_cache.backends.redis import RedisBackend
-from fastapi_cache.decorator import cache
-from starlette.responses import Response
 from redis import asyncio as aioredis
-import redis
-
 
 from src.gql import gql_query, Query
 from src.key_builder import gql_key_builder
 from src.cache import get_cache, set_cache
 import os
 import json
+import src.config as config
 
 ### App related variables
 app = FastAPI()
@@ -41,9 +38,14 @@ async def gql_post(query: Query):
   '''
   Forward gql query to GQL server by post method. 
   Because post method is not cacheable in fastapi-cache, we should cache it manually.
+  The range of ttl is [3,600], default is 60.
   '''
   gql_endpoint = os.environ['MESH_GQL_ENDPOINT']
   gql_string, gql_variable, ttl = query.query, query.variable, query.ttl
+  
+  ### validate input data
+  if ttl>config.MAX_GQL_TTL or ttl<config.MIN_GQL_TTL:
+    return dict(message="Invalid input ttl")
   
   ### check cache in redis
   prefix = FastAPICache.get_prefix()

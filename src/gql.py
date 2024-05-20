@@ -2,6 +2,7 @@ from gql.transport.requests import RequestsHTTPTransport
 from gql.transport.exceptions import TransportError
 from gql import gql, Client
 from pydantic import BaseModel
+import src.config as config 
 
 def gql_query(gql_endpoint, gql_string, gql_variable: None):
     '''
@@ -23,7 +24,7 @@ def gql_query(gql_endpoint, gql_string, gql_variable: None):
 class Query(BaseModel):
   query: str
   variable: str = None
-  ttl: int=60
+  ttl: int = config.DEFAULT_GQL_TTL
 
 class Response(BaseModel):
   response: dict
