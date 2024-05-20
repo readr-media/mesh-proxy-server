@@ -26,5 +26,22 @@ class Query(BaseModel):
   variable: str = None
   ttl: int = config.DEFAULT_GQL_TTL
 
-class Response(BaseModel):
-  response: dict
+class LatestStories(BaseModel):
+  publishers: list[str] = []
+  
+### Predefined gql queries
+gql_stories = """
+query Stories{{
+  stories(where: {{source: {{id: {{equals: {ID} }} }} }}, take: {TAKE} ){{
+    id
+    title
+    source{{
+      id
+      title
+    }}
+    url
+    summary
+    content
+  }}
+}}
+"""
