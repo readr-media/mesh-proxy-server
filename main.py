@@ -74,7 +74,7 @@ async def gql_post(query: Query):
   '''
   Forward gql query to GQL server by post method. 
   Because post method is not cacheable in fastapi-cache, we should cache it manually.
-  The range of ttl is [3,600], default is 60.
+  The range of ttl is [3,600], default is 10.
   '''
   gql_endpoint = os.environ['MESH_GQL_ENDPOINT']
   gql_string, gql_variables, ttl = query.query, query.variables, query.ttl
