@@ -32,7 +32,7 @@ class LatestStories(BaseModel):
 ### Predefined gql queries
 gql_stories = """
 query Stories{{
-  stories(where: {{source: {{id: {{equals: {ID} }} }} }}, take: {TAKE} ){{
+  stories(where: {{source: {{id: {{equals: {ID} }} }} }}, take: {TAKE}, orderBy: {{published_date: desc}} ){{
     id
     title
     source{{
