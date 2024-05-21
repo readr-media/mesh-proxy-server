@@ -22,6 +22,7 @@ async def check_cache_gql(backend, cache_key: str, gql_endpoint: str, gql_string
         print(f"{cache_key} hits with ttl {cached_ttl}")
         return dict(json.loads(cached))
     print(f"{cache_key} missed")
-    response = gql_query(gql_endpoint, gql_string=gql_string, gql_variables=gql_variables)
-    await set_cache(backend, cache_key, json.dumps(response), ttl)
-    return response
+    response, error_message = gql_query(gql_endpoint, gql_string=gql_string, gql_variables=gql_variables)
+    if response and (error_message is None):
+        await set_cache(backend, cache_key, json.dumps(response), ttl)
+    return response, error_message

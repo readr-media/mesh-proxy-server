@@ -8,7 +8,7 @@ def gql_query(gql_endpoint, gql_string: str=None, gql_variables: str=None):
     '''
         gql_fetch is used to retrieve data
     '''
-    json_data = None
+    json_data, error_message = None, None
     try:
       gql_transport = RequestsHTTPTransport(url=gql_endpoint)
       gql_client = Client(transport=gql_transport,
@@ -17,9 +17,10 @@ def gql_query(gql_endpoint, gql_string: str=None, gql_variables: str=None):
         json_data = gql_client.execute(gql(gql_string), variable_values=gql_variables)
       else:
         json_data = gql_client.execute(gql(gql_string))
-    except TransportError as e:
-      print("Transport Error:", e)
-    return json_data
+    except Exception as e:
+      print("GQL query error:", e)
+      error_message = e
+    return json_data, error_message
 
 class Query(BaseModel):
   query: str

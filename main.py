@@ -92,7 +92,7 @@ async def gql_post(query: Query):
   cache_key = gql_key_builder(prefix, query.model_dump_json())
   
   ### cache checking
-  response = await check_cache_gql(
+  response, error_message = await check_cache_gql(
     backend = backend,
     cache_key = cache_key,
     gql_endpoint = gql_endpoint,
@@ -100,6 +100,11 @@ async def gql_post(query: Query):
     gql_variables = json.dumps(gql_variables),
     ttl = ttl
   )
+  if error_message:
+    return JSONResponse(
+      status_code=status.HTTP_400_BAD_REQUEST,
+      content={"message": f"{error_message}"}
+    )
   return dict(response)
 
 @app.on_event("startup")
