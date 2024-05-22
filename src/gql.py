@@ -4,12 +4,6 @@ from pydantic import BaseModel, ConfigDict
 import src.config as config 
 
 import requests
-import httpx
-
-async def proxy_request(url: str, data: Dict[str, Any]):
-    async with httpx.AsyncClient() as client:
-        response = await client.post(url, json=data)
-        return response.json()
 
 def gql_query_forward(gql_endpoint, json_payload: str):
   '''
