@@ -9,3 +9,4 @@ gql==3.0.0
 fastapi-cache2
 redis
 requests_toolbelt
+httpx

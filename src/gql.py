@@ -2,16 +2,25 @@ from gql.transport.requests import RequestsHTTPTransport
 from gql import gql, Client
 from pydantic import BaseModel, ConfigDict
 import src.config as config 
-import requests
 
-def gql_query_forward(gql_endpoint, json_payload: dict):
+import requests
+import httpx
+
+async def proxy_request(url: str, data: Dict[str, Any]):
+    async with httpx.AsyncClient() as client:
+        response = await client.post(url, json=data)
+        return response.json()
+
+def gql_query_forward(gql_endpoint, json_payload: str):
   '''
     forward json_payload to gql_endpoint directly
   '''
   json_data, error_message = None, None
+  headers = {'Content-type': 'application/json', 'Accept': 'text/plain'}
   try:
-    response = requests.post(gql_endpoint, json=json_payload)
+    response = requests.post(gql_endpoint, json=json_payload, headers=headers)
     json_data = response.json()
+    print("Return data is: ", json_data)
   except Exception as e:
     print("GQL query error:", e)
     error_message = e
