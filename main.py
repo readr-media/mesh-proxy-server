@@ -8,7 +8,7 @@ from redis import asyncio as aioredis
 
 from src.gql import Query, LatestStories, Forward, gql_stories, gql_query_forward
 from src.key_builder import gql_key_builder
-from src.cache import check_cache_gql
+from src.cache import check_cache_gql, check_cache_http
 import os
 import json
 import src.config as config
@@ -75,7 +75,8 @@ async def gql_post(query: Query):
   Forward gql query to GQL server by post method. 
   '''
   gql_endpoint = os.environ['MESH_GQL_ENDPOINT']
-  gql_string, gql_variables, operation_name, ttl = query.query, query.variables, query.operationName, query.ttl
+  gql_payload = query.model_dump()
+  ttl = gql_payload['ttl']
   
   ### validate input data
   if ttl>config.MAX_GQL_TTL or ttl<config.MIN_GQL_TTL:
@@ -84,19 +85,10 @@ async def gql_post(query: Query):
         content={"message": f"Invalid ttl value."},
     )
   
-  ### build cache key
-  prefix = FastAPICache.get_prefix()
-  backend  = FastAPICache.get_backend()
-  cache_key = gql_key_builder(f"{prefix}:web", query.model_dump_json())
-  
   ### cache checking
   response, error_message = await check_cache_gql(
-    backend = backend,
-    cache_key = cache_key,
     gql_endpoint = gql_endpoint,
-    gql_string = gql_string,
-    gql_variables = json.dumps(gql_variables),
-    operation_name = operation_name,
+    gql_payload = gql_payload,
     ttl = ttl
   )
   if error_message:
@@ -112,7 +104,8 @@ async def gql_post_mobile(query: Query):
   Forward gql query to GQL server by post method and it's for mobile. 
   '''
   gql_endpoint = os.environ['MESH_GQL_ENDPOINT']
-  gql_string, gql_variables, operation_name, ttl = query.query, query.variables, query.operationName, query.ttl
+  gql_payload = query.model_dump()
+  ttl = gql_payload['ttl']
   
   ### validate input data
   if ttl>config.MAX_GQL_TTL or ttl<config.MIN_GQL_TTL:
@@ -121,19 +114,10 @@ async def gql_post_mobile(query: Query):
         content={"message": f"Invalid ttl value."},
     )
   
-  ### build cache key
-  prefix = FastAPICache.get_prefix()
-  backend  = FastAPICache.get_backend()
-  cache_key = gql_key_builder(f"{prefix}:mobile", query.model_dump_json())
-  
   ### cache checking
   response, error_message = await check_cache_gql(
-    backend = backend,
-    cache_key = cache_key,
     gql_endpoint = gql_endpoint,
-    gql_string = gql_string,
-    gql_variables = json.dumps(gql_variables),
-    operation_name = operation_name,
+    gql_payload = gql_payload,
     ttl = ttl
   )
   if error_message:
@@ -145,10 +129,19 @@ async def gql_post_mobile(query: Query):
 
 @app.post('/forward')
 async def forward(forward: Forward):
-  data = forward.model_dump_json()
+  '''
+  Forward gql request by http method directly.
+  '''
   gql_endpoint = os.environ['MESH_GQL_ENDPOINT']
-  result, error_message = gql_query_forward(gql_endpoint, forward.model_dump_json())
-  return "ok"
+  gql_payload = forward.model_dump()
+  
+  response, error_message = await check_cache_http(gql_endpoint, gql_payload)
+  if error_message:
+    return JSONResponse(
+      status_code=status.HTTP_400_BAD_REQUEST,
+      content={"message": f"{error_message}"}
+    )
+  return dict(response)
 
 @app.on_event("startup")
 async def startup():

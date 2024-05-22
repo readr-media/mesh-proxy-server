@@ -6,14 +6,13 @@ from typing import Optional
 
 import requests
 
-def gql_query_forward(gql_endpoint, json_payload: str):
+def gql_query_forward(gql_endpoint, json_payload: dict):
   '''
     forward json_payload to gql_endpoint directly
   '''
   json_data, error_message = None, None
-  headers = {'Content-type': 'application/json', 'Accept': 'text/plain'}
   try:
-    response = requests.post(gql_endpoint, json=json_payload, headers=headers)
+    response = requests.post(gql_endpoint, json=json_payload)
     json_data = response.json()
     print("Return data is: ", json_data)
   except Exception as e:
@@ -44,6 +43,9 @@ class Query(BaseModel):
   
 class Forward(BaseModel):
   model_config = ConfigDict(extra='allow')
+  query: str
+  operationName: Optional[str] = None
+  variables: Optional[dict] = None
 
 class LatestStories(BaseModel):
   publishers: list[str] = []
