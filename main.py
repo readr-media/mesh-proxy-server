@@ -6,7 +6,7 @@ from fastapi_cache import FastAPICache
 from fastapi_cache.backends.redis import RedisBackend
 from redis import asyncio as aioredis
 
-from src.gql import Query, LatestStories, gql_stories
+from src.gql import Query, LatestStories, gql_stories, Forward
 from src.key_builder import gql_key_builder
 from src.cache import check_cache_gql
 import os
@@ -106,7 +106,11 @@ async def gql_post(query: Query):
       status_code=status.HTTP_400_BAD_REQUEST,
       content={"message": f"{error_message}"}
     )
-  return dict(response)
+  return dict({"data": response})
+
+@app.post('forward')
+async def forward(forward: Forward):
+  return "ok"
 
 @app.on_event("startup")
 async def startup():
