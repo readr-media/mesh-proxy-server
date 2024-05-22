@@ -24,6 +24,7 @@ def gql_query(gql_endpoint, gql_string: str=None, gql_variables: str=None):
 
 class Query(BaseModel):
   query: str
+  operationName: str = ''
   variables: dict = None
   ttl: int = config.DEFAULT_GQL_TTL
 
