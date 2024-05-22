@@ -77,7 +77,7 @@ async def gql_post(query: Query):
   The range of ttl is [3,600], default is 10.
   '''
   gql_endpoint = os.environ['MESH_GQL_ENDPOINT']
-  gql_string, gql_variables, operation_name, ttl = query.query, query.variables, query.operation_name, query.ttl
+  gql_string, gql_variables, operation_name, ttl = query.query, query.variables, query.operationName, query.ttl
   
   ### validate input data
   if ttl>config.MAX_GQL_TTL or ttl<config.MIN_GQL_TTL:

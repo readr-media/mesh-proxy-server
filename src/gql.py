@@ -35,7 +35,7 @@ def gql_query(gql_endpoint, gql_string: str=None, gql_variables: str=None, opera
 class Query(BaseModel):
   # model_config = ConfigDict(extra='allow')
   query: str
-  operation_name: str = None
+  operationName: str = None
   variables: dict = None
   ttl: int = config.DEFAULT_GQL_TTL
   
