@@ -2,6 +2,7 @@ from gql.transport.requests import RequestsHTTPTransport
 from gql import gql, Client
 from pydantic import BaseModel, ConfigDict
 import src.config as config 
+from typing import Optional
 
 import requests
 
@@ -36,11 +37,10 @@ def gql_query(gql_endpoint, gql_string: str=None, gql_variables: str=None, opera
   return json_data, error_message
 
 class Query(BaseModel):
-  # model_config = ConfigDict(extra='allow')
   query: str
-  operationName: str = None
-  variables: dict = None
-  ttl: int = config.DEFAULT_GQL_TTL
+  operationName: Optional[str] = None
+  variables: Optional[dict] = None
+  ttl: Optional[int] = config.DEFAULT_GQL_TTL
   
 class Forward(BaseModel):
   model_config = ConfigDict(extra='allow')
