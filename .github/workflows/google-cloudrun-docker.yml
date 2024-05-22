@@ -49,10 +49,10 @@ on:
     branches: [ "dev" ]
 
 env:
-  PROJECT_ID: mirrorlearning-161006 # TODO: update Google Cloud project id
-  GAR_LOCATION: asia-east1 # TODO: update Artifact Registry location
-  SERVICE: mesh-proxy-server-dev # TODO: update Cloud Run service name
-  REGION: asia-east1 # TODO: update Cloud Run service region
+  PROJECT_ID: '${{PROJECT_ID}}' # TODO: update Google Cloud project id
+  GAR_LOCATION: '${{_DEPLOY_REGION}}' # TODO: update Artifact Registry location
+  SERVICE: '${{_SERVICE_NAME}}' # TODO: update Cloud Run service name
+  REGION: '${{_DEPLOY_REGION}}' # TODO: update Cloud Run service region
 
 jobs:
   deploy:

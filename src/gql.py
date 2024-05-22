@@ -2,20 +2,6 @@ from gql.transport.requests import RequestsHTTPTransport
 from gql import gql, Client
 from pydantic import BaseModel, ConfigDict
 import src.config as config 
-import requests
-
-def gql_query_forward(gql_endpoint, json_payload: dict):
-  '''
-    gql_fetch is used to retrieve data
-  '''
-  json_data, error_message = None, None
-  try:
-    response = requests.post(gql_endpoint, json=json_payload)
-    json_data = response.json()
-  except Exception as e:
-    print("GQL query error:", e)
-    error_message = e
-  return json_data, error_message
 
 def gql_query(gql_endpoint, gql_string: str=None, gql_variables: str=None, operation_name: str=None):
   '''
@@ -38,7 +24,7 @@ class Query(BaseModel):
   operationName: str = None
   variables: dict = None
   ttl: int = config.DEFAULT_GQL_TTL
-  
+
 class LatestStories(BaseModel):
   publishers: list[str] = []
   
