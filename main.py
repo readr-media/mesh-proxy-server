@@ -6,10 +6,11 @@ from fastapi_cache import FastAPICache
 from fastapi_cache.backends.redis import RedisBackend
 from redis import asyncio as aioredis
 
-from src.gql import LatestStories, Forward, gql_stories
+from src.gql import LatestStories, GqlQuery, gql_stories, JsonQuery
 from src.cache import check_cache_gql, check_cache_http
 import os
 import src.config as config
+from google.cloud import pubsub_v1
 
 ### App related variables
 app = FastAPI()
@@ -32,13 +33,28 @@ async def health_checking():
   '''
   return dict(message="Health check for mesh-proxy-server")
 
+@app.post('/pubsub')
+async def pubsub(request: JsonQuery):
+  '''
+  Forward pubsub request to topic. Pubsub is used to handle interactive user actions.
+  '''
+  topic_path = os.environ['PUBSUB_TOPIC']
+  publisher = pubsub_v1.PublisherClient()
+  
+  ### publish data
+  data = request.model_dump_json().encode('utf-8')
+  future = publisher.publish(topic_path, data)
+  print(future.result())
+  print(f"Published messages to {topic_path}.")
+  return "ok"
+
 @app.post('/gql')
-async def forward(forward: Forward):
+async def forward(request: GqlQuery):
   '''
   Forward gql request by http method directly.
   '''
   gql_endpoint = os.environ['MESH_GQL_ENDPOINT']
-  gql_payload = forward.model_dump()
+  gql_payload = request.model_dump()
   
   response, error_message = await check_cache_http(gql_endpoint, gql_payload)
   if error_message:

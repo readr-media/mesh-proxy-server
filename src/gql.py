@@ -41,11 +41,14 @@ def gql_query(gql_endpoint, gql_string: str=None, gql_variables: str=None, opera
 #   variables: Optional[dict] = None
 #   ttl: Optional[int] = config.DEFAULT_GQL_TTL
   
-class Forward(BaseModel):
+class GqlQuery(BaseModel):
   model_config = ConfigDict(extra='allow')
   query: str
   operationName: Optional[str] = None
   variables: Optional[dict] = None
+
+class JsonQuery(BaseModel):
+  model_config = ConfigDict(extra='allow')
 
 class LatestStories(BaseModel):
   publishers: list[str] = []
