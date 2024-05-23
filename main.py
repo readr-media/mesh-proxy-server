@@ -44,9 +44,13 @@ async def pubsub(request: JsonQuery):
   ### publish data
   data = request.model_dump_json().encode('utf-8')
   future = publisher.publish(topic_path, data)
-  print(future.result())
-  print(f"Published messages to {topic_path}.")
-  return "ok"
+  response = 'Abnormal event happened when publishing message.'
+  try:
+    message_id = future.result()
+    response = f"Message published with ID: {message_id}."
+  except Exception as e:
+    response = f"Failed to publish message. Error: {e}."
+  return dict({"message": response})
 
 @app.post('/gql')
 async def forward(request: GqlQuery):
