@@ -69,35 +69,6 @@ async def latest_stories(latestStories: LatestStories):
     all_stories.extend(stories)
   return dict({"latest_stories:": all_stories, "num_stories": len(all_stories)})
 
-@app.post('/gql')
-async def gql_post(query: Query):
-  '''
-  Forward gql query to GQL server by post method. 
-  '''
-  gql_endpoint = os.environ['MESH_GQL_ENDPOINT']
-  gql_payload = query.model_dump()
-  ttl = gql_payload['ttl']
-  
-  ### validate input data
-  if ttl>config.MAX_GQL_TTL or ttl<config.MIN_GQL_TTL:
-    return JSONResponse(
-        status_code=status.HTTP_400_BAD_REQUEST,
-        content={"message": f"Invalid ttl value."},
-    )
-  
-  ### cache checking
-  response, error_message = await check_cache_gql(
-    gql_endpoint = gql_endpoint,
-    gql_payload = gql_payload,
-    ttl = ttl
-  )
-  if error_message:
-    return JSONResponse(
-      status_code=status.HTTP_400_BAD_REQUEST,
-      content={"message": f"{error_message}"}
-    )
-  return dict({"data": response})
-
 @app.post('/gql_mobile')
 async def gql_post_mobile(query: Query):
   '''
@@ -127,7 +98,7 @@ async def gql_post_mobile(query: Query):
     )
   return dict(response)
 
-@app.post('/forward')
+@app.post('/gql')
 async def forward(forward: Forward):
   '''
   Forward gql request by http method directly.
