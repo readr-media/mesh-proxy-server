@@ -6,7 +6,7 @@ from fastapi_cache import FastAPICache
 from fastapi_cache.backends.redis import RedisBackend
 from redis import asyncio as aioredis
 
-from src.gql import LatestStories, GqlQuery, gql_stories, JsonQuery
+from src.gql import LatestStories, GqlQuery, gql_stories, JsonQuery, gql_query_forward
 from src.cache import check_cache_gql, check_cache_http
 import os
 import src.config as config
@@ -53,9 +53,24 @@ async def pubsub(request: JsonQuery):
   return dict({"message": response})
 
 @app.post('/gql')
+async def gql(request: GqlQuery):
+  '''
+  Forward gql request by http method without cache.
+  '''
+  gql_endpoint = os.environ['MESH_GQL_ENDPOINT']
+  gql_payload = request.model_dump()
+  response, error_message = gql_query_forward(gql_endpoint, gql_payload)
+  if error_message:
+    return JSONResponse(
+      status_code=status.HTTP_400_BAD_REQUEST,
+      content={"message": f"{error_message}"}
+    )
+  return dict(response)
+  
+@app.post('/gql/cache')
 async def forward(request: GqlQuery):
   '''
-  Forward gql request by http method directly.
+  Forward gql request by http method with cache.
   '''
   gql_endpoint = os.environ['MESH_GQL_ENDPOINT']
   gql_payload = request.model_dump()

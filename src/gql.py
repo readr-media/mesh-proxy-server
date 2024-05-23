@@ -34,12 +34,6 @@ def gql_query(gql_endpoint, gql_string: str=None, gql_variables: str=None, opera
     print("GQL query error:", e)
     error_message = e
   return json_data, error_message
-
-# class Query(BaseModel):
-#   query: str
-#   operationName: Optional[str] = None
-#   variables: Optional[dict] = None
-#   ttl: Optional[int] = config.DEFAULT_GQL_TTL
   
 class GqlQuery(BaseModel):
   model_config = ConfigDict(extra='allow')
