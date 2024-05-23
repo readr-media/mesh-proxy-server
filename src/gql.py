@@ -1,7 +1,6 @@
 from gql.transport.requests import RequestsHTTPTransport
 from gql import gql, Client
 from pydantic import BaseModel, ConfigDict
-import src.config as config 
 from typing import Optional
 
 import requests
@@ -34,18 +33,6 @@ def gql_query(gql_endpoint, gql_string: str=None, gql_variables: str=None, opera
     print("GQL query error:", e)
     error_message = e
   return json_data, error_message
-  
-class GqlQuery(BaseModel):
-  model_config = ConfigDict(extra='allow')
-  query: str
-  operationName: Optional[str] = None
-  variables: Optional[dict] = None
-
-class JsonQuery(BaseModel):
-  model_config = ConfigDict(extra='allow')
-
-class LatestStories(BaseModel):
-  publishers: list[str] = []
   
 ### Predefined gql queries
 gql_stories = """

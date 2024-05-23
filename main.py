@@ -6,7 +6,8 @@ from fastapi_cache import FastAPICache
 from fastapi_cache.backends.redis import RedisBackend
 from redis import asyncio as aioredis
 
-from src.gql import LatestStories, GqlQuery, gql_stories, JsonQuery, gql_query_forward
+from src.gql import gql_stories, gql_query_forward
+from src.request_body import LatestStories, GqlQuery, JsonQuery
 from src.cache import check_cache_gql, check_cache_http
 import os
 import src.config as config
