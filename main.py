@@ -6,11 +6,9 @@ from fastapi_cache import FastAPICache
 from fastapi_cache.backends.redis import RedisBackend
 from redis import asyncio as aioredis
 
-from src.gql import Query, LatestStories, Forward, gql_stories, gql_query_forward
-from src.key_builder import gql_key_builder
+from src.gql import LatestStories, Forward, gql_stories
 from src.cache import check_cache_gql, check_cache_http
 import os
-import json
 import src.config as config
 
 ### App related variables
@@ -34,6 +32,22 @@ async def health_checking():
   '''
   return dict(message="Health check for mesh-proxy-server")
 
+@app.post('/gql')
+async def forward(forward: Forward):
+  '''
+  Forward gql request by http method directly.
+  '''
+  gql_endpoint = os.environ['MESH_GQL_ENDPOINT']
+  gql_payload = forward.model_dump()
+  
+  response, error_message = await check_cache_http(gql_endpoint, gql_payload)
+  if error_message:
+    return JSONResponse(
+      status_code=status.HTTP_400_BAD_REQUEST,
+      content={"message": f"{error_message}"}
+    )
+  return dict(response)
+
 @app.post('/latest_stories')
 async def latest_stories(latestStories: LatestStories):
   '''
@@ -50,69 +64,20 @@ async def latest_stories(latestStories: LatestStories):
   all_stories = []
   for publisher_id in publishers:
     gql_stories_string = gql_stories.format(ID=publisher_id, TAKE=config.DEFAULT_LATEST_STORIES_NUM)
-    
-    ### build cache key
-    prefix = FastAPICache.get_prefix()
-    backend  = FastAPICache.get_backend()
-    cache_key = gql_key_builder(prefix, gql_stories_string)
-    
-    ### cache checking
-    response = await check_cache_gql(
-      backend = backend,
-      cache_key = cache_key,
+    gql_payload = {
+      "query": gql_stories_string
+    }
+    response, error_message = await check_cache_gql(
       gql_endpoint = gql_endpoint,
-      gql_string = gql_stories_string,
-      gql_variables = None,
+      gql_payload = gql_payload,
       ttl = config.DEFAULT_LATEST_STORIES_TTL
     )
-    stories = response.get('stories', [])
-    all_stories.extend(stories)
+    if error_message:
+      print(f"{error_message} when fetching latest stories.")
+    else:
+      stories = response.get('stories', [])
+      all_stories.extend(stories)
   return dict({"latest_stories:": all_stories, "num_stories": len(all_stories)})
-
-@app.post('/gql_mobile')
-async def gql_post_mobile(query: Query):
-  '''
-  Forward gql query to GQL server by post method and it's for mobile. 
-  '''
-  gql_endpoint = os.environ['MESH_GQL_ENDPOINT']
-  gql_payload = query.model_dump()
-  ttl = gql_payload['ttl']
-  
-  ### validate input data
-  if ttl>config.MAX_GQL_TTL or ttl<config.MIN_GQL_TTL:
-    return JSONResponse(
-        status_code=status.HTTP_400_BAD_REQUEST,
-        content={"message": f"Invalid ttl value."},
-    )
-  
-  ### cache checking
-  response, error_message = await check_cache_gql(
-    gql_endpoint = gql_endpoint,
-    gql_payload = gql_payload,
-    ttl = ttl
-  )
-  if error_message:
-    return JSONResponse(
-      status_code=status.HTTP_400_BAD_REQUEST,
-      content={"message": f"{error_message}"}
-    )
-  return dict(response)
-
-@app.post('/gql')
-async def forward(forward: Forward):
-  '''
-  Forward gql request by http method directly.
-  '''
-  gql_endpoint = os.environ['MESH_GQL_ENDPOINT']
-  gql_payload = forward.model_dump()
-  
-  response, error_message = await check_cache_http(gql_endpoint, gql_payload)
-  if error_message:
-    return JSONResponse(
-      status_code=status.HTTP_400_BAD_REQUEST,
-      content={"message": f"{error_message}"}
-    )
-  return dict(response)
 
 @app.on_event("startup")
 async def startup():
