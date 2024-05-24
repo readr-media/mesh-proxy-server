@@ -35,7 +35,7 @@ async def health_checking():
   return dict(message="Health check for mesh-proxy-server")
 
 @app.post('/pubsub')
-async def pubsub(payload: dict):
+async def pubsub(request: JsonQuery):
   '''
   Forward pubsub request to topic. Pubsub is used to handle interactive user actions.
   '''
@@ -43,15 +43,18 @@ async def pubsub(payload: dict):
   publisher = pubsub_v1.PublisherClient()
   
   ### publish data
-  json_payload = payload.get('json_payload')
-  future = publisher.publish(topic_path, json_payload)
-  response = 'Abnormal event happened when publishing message.'
-  try:
-    message_id = future.result()
-    response = f"Message published with ID: {message_id}."
-  except Exception as e:
-    response = f"Failed to publish message. Error: {e}."
-  return dict({"message": response})
+  payload = request.model_dump()
+  print(payload)
+  return dict({"message": "ok"})
+  # json_payload = payload.get('json_payload')
+  # future = publisher.publish(topic_path, json_payload)
+  # response = 'Abnormal event happened when publishing message.'
+  # try:
+  #   message_id = future.result()
+  #   response = f"Message published with ID: {message_id}."
+  # except Exception as e:
+  #   response = f"Failed to publish message. Error: {e}."
+  # return dict({"message": response})
 
 @app.post('/gql')
 async def gql(request: GqlQuery):
