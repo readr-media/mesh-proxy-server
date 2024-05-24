@@ -41,14 +41,12 @@ async def pubsub_test(request: DictQuery):
   
   ### publish data
   payload = request.model_dump_json().encode('utf-8')
-  json_payload = payload.get('json_payload', None)
-  if json_payload==None:
+  if payload==None:
     return JSONResponse(
       status_code=status.HTTP_400_BAD_REQUEST,
       content={"message": "Json payload cannot be empty."}
     )
-  print(json_payload)
-  future = publisher.publish(topic_path, json_payload)
+  future = publisher.publish(topic_path, payload)
   response = 'Abnormal event happened when publishing message.'
   try:
     message_id = future.result()
