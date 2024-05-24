@@ -9,6 +9,9 @@ class GqlQuery(BaseModel):
 
 class JsonQuery(BaseModel):
   json_payload: bytes
+  
+class DictQuery(BaseModel):
+  model_config = ConfigDict(extra='allow')
 
 class LatestStories(BaseModel):
   publishers: list[str] = []

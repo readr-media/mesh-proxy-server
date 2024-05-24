@@ -7,7 +7,7 @@ from fastapi_cache.backends.redis import RedisBackend
 from redis import asyncio as aioredis
 
 from src.gql import gql_stories, gql_query_forward
-from src.request_body import LatestStories, GqlQuery, JsonQuery
+from src.request_body import LatestStories, GqlQuery, JsonQuery, DictQuery
 from src.cache import check_cache_gql, check_cache_http
 import os
 import src.config as config
@@ -33,6 +33,30 @@ async def health_checking():
   Health checking API. You can only use @cache decorator to get method.
   '''
   return dict(message="Health check for mesh-proxy-server")
+
+@app.post('/pubsub/test')
+async def pubsub_test(request: DictQuery):
+  topic_path = os.environ['PUBSUB_TOPIC']
+  publisher = pubsub_v1.PublisherClient()
+  
+  ### publish data
+  payload = request.model_dump_json().encode('utf-8')
+  json_payload = payload.get('json_payload', None)
+  if json_payload==None:
+    return JSONResponse(
+      status_code=status.HTTP_400_BAD_REQUEST,
+      content={"message": "Json payload cannot be empty."}
+    )
+  print(json_payload)
+  future = publisher.publish(topic_path, json_payload)
+  response = 'Abnormal event happened when publishing message.'
+  try:
+    message_id = future.result()
+    response = f"Message published with ID: {message_id}."
+  except Exception as e:
+    response = f"Failed to publish message. Error: {e}."
+  print("pubsub response: ", response)
+  return dict({"message": response})
 
 @app.post('/pubsub')
 async def pubsub(request: JsonQuery):
