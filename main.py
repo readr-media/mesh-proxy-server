@@ -7,11 +7,10 @@ from fastapi_cache.backends.redis import RedisBackend
 from redis import asyncio as aioredis
 
 from src.gql import gql_stories, gql_query_forward
-from src.request_body import LatestStories, GqlQuery, JsonQuery, DictQuery
+from src.request_body import LatestStories, GqlQuery
 from src.cache import check_cache_gql, check_cache_http
 import os
 import src.config as config
-import base64
 from google.cloud import pubsub_v1
 import json
 
@@ -36,8 +35,11 @@ async def health_checking():
   '''
   return dict(message="Health check for mesh-proxy-server")
 
-@app.post('/pubsub/test')
-async def pubsub_test(request: dict):
+@app.post('/pubsub')
+async def pubsub(request: dict):
+  '''
+  Forward pubsub messages
+  '''
   topic_path = os.environ['PUBSUB_TOPIC']
   publisher = pubsub_v1.PublisherClient()
   
@@ -51,33 +53,6 @@ async def pubsub_test(request: dict):
   publisher = pubsub_v1.PublisherClient()
   ### publisher will automatically encode the payload with base64
   future = publisher.publish(topic_path, payload)
-  response = 'Abnormal event happened when publishing message.'
-  try:
-    message_id = future.result()
-    response = f"Message published with ID: {message_id}."
-  except Exception as e:
-    response = f"Failed to publish message. Error: {e}."
-  print("pubsub response: ", response)
-  return dict({"message": response})
-
-@app.post('/pubsub')
-async def pubsub(request: JsonQuery):
-  '''
-  Forward pubsub request to topic. Pubsub is used to handle interactive user actions.
-  '''
-  topic_path = os.environ['PUBSUB_TOPIC']
-  publisher = pubsub_v1.PublisherClient()
-  
-  ### publish data
-  payload = request.model_dump()
-  json_payload = payload.get('json_payload', None)
-  if json_payload==None:
-    return JSONResponse(
-      status_code=status.HTTP_400_BAD_REQUEST,
-      content={"message": "Json payload cannot be empty."}
-    )
-  print(json_payload)
-  future = publisher.publish(topic_path, json_payload)
   response = 'Abnormal event happened when publishing message.'
   try:
     message_id = future.result()
