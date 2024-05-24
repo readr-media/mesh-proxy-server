@@ -8,7 +8,7 @@ class GqlQuery(BaseModel):
   variables: Optional[dict] = None
 
 class JsonQuery(BaseModel):
-  json_payload: str
+  json_payload: bytes
 
 class LatestStories(BaseModel):
   publishers: list[str] = []

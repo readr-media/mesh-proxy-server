@@ -58,6 +58,7 @@ async def pubsub(request: JsonQuery):
     response = f"Message published with ID: {message_id}."
   except Exception as e:
     response = f"Failed to publish message. Error: {e}."
+  print("pubsub response: ", response)
   return dict({"message": response})
 
 @app.post('/gql')
