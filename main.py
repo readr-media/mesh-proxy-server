@@ -13,6 +13,7 @@ import os
 import src.config as config
 import base64
 from google.cloud import pubsub_v1
+import json
 
 ### App related variables
 app = FastAPI()
@@ -36,18 +37,20 @@ async def health_checking():
   return dict(message="Health check for mesh-proxy-server")
 
 @app.post('/pubsub/test')
-async def pubsub_test(request: DictQuery):
+async def pubsub_test(request: dict):
   topic_path = os.environ['PUBSUB_TOPIC']
   publisher = pubsub_v1.PublisherClient()
   
   ### publish data
-  payload = request.model_dump_json().encode('utf-8')
+  payload = json.dumps(request).encode('utf-8')
   if payload==None:
     return JSONResponse(
       status_code=status.HTTP_400_BAD_REQUEST,
       content={"message": "Json payload cannot be empty."}
     )
-  future = publisher.publish(topic_path, base64.b64encode(payload))
+  publisher = pubsub_v1.PublisherClient()
+  ### publisher will automatically encode the payload with base64
+  future = publisher.publish(topic_path, payload)
   response = 'Abnormal event happened when publishing message.'
   try:
     message_id = future.result()
