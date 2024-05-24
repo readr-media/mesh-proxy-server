@@ -44,17 +44,21 @@ async def pubsub(request: JsonQuery):
   
   ### publish data
   payload = request.model_dump()
-  print(payload)
-  return dict({"message": "ok"})
-  # json_payload = payload.get('json_payload')
-  # future = publisher.publish(topic_path, json_payload)
-  # response = 'Abnormal event happened when publishing message.'
-  # try:
-  #   message_id = future.result()
-  #   response = f"Message published with ID: {message_id}."
-  # except Exception as e:
-  #   response = f"Failed to publish message. Error: {e}."
-  # return dict({"message": response})
+  json_payload = payload.get('json_payload', None)
+  if json_payload==None:
+    return JSONResponse(
+      status_code=status.HTTP_400_BAD_REQUEST,
+      content={"message": "Json payload cannot be empty."}
+    )
+  print(json_payload)
+  future = publisher.publish(topic_path, json_payload)
+  response = 'Abnormal event happened when publishing message.'
+  try:
+    message_id = future.result()
+    response = f"Message published with ID: {message_id}."
+  except Exception as e:
+    response = f"Failed to publish message. Error: {e}."
+  return dict({"message": response})
 
 @app.post('/gql')
 async def gql(request: GqlQuery):
