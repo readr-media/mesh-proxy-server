@@ -11,6 +11,7 @@ from src.request_body import LatestStories, GqlQuery, JsonQuery, DictQuery
 from src.cache import check_cache_gql, check_cache_http
 import os
 import src.config as config
+import base64
 from google.cloud import pubsub_v1
 
 ### App related variables
@@ -46,7 +47,7 @@ async def pubsub_test(request: DictQuery):
       status_code=status.HTTP_400_BAD_REQUEST,
       content={"message": "Json payload cannot be empty."}
     )
-  future = publisher.publish(topic_path, payload)
+  future = publisher.publish(topic_path, base64.b64encode(payload))
   response = 'Abnormal event happened when publishing message.'
   try:
     message_id = future.result()
