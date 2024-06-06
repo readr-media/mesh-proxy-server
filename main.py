@@ -3,7 +3,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from fastapi_cache import FastAPICache
-from fastapi_cache.backends.redis import RedisBackend
+# from fastapi_cache.backends.redis import RedisBackend
+from src.backend.redis import RedisBackendExtend
 from redis import asyncio as aioredis
 
 from src.gql import gql_stories, gql_query_forward
@@ -11,7 +12,6 @@ from src.request_body import LatestStories, GqlQuery
 from src.key_builder import key_builder
 from src.cache import check_cache_http, mget_cache
 import os
-import src.config as config
 from google.cloud import pubsub_v1
 import json
 
@@ -122,4 +122,4 @@ async def startup():
   NAMESPACE = os.environ.get('NAMESPACE', 'dev')
   redis_endpoint = os.environ.get('REDIS_ENDPOINT', 'redis-cache:6379')
   redis = aioredis.from_url(f"redis://{redis_endpoint}", encoding="utf8", decode_responses=True)
-  FastAPICache.init(RedisBackend(redis), prefix=f"{NAMESPACE}")
+  FastAPICache.init(RedisBackendExtend(redis), prefix=f"{NAMESPACE}")
