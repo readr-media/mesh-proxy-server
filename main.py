@@ -3,17 +3,18 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from fastapi_cache import FastAPICache
-# from fastapi_cache.backends.redis import RedisBackend
 from src.backend.redis import RedisBackendExtend
 from redis import asyncio as aioredis
 
-from src.gql import gql_stories, gql_query_forward
+from src.gql import gql_query_forward
 from src.request_body import LatestStories, GqlQuery
 from src.key_builder import key_builder
 from src.cache import check_cache_http, mget_cache
 import os
 from google.cloud import pubsub_v1
 import json
+from datetime import datetime
+import src.config as config
 
 ### App related variables
 app = FastAPI()
@@ -99,23 +100,38 @@ async def latest_stories(latestStories: LatestStories):
   '''
   Get latest stories by publisher ids. Default latest_stories_num for each publisher is 30.
   '''
-  categories = latestStories.categories
   publishers = latestStories.publishers
-  start_index = latestStories.start_index
+  category = latestStories.category
   prefix = FastAPICache.get_prefix()
   
+  ### get data from redis
   all_keys = []
-  for category_id in categories:
-    for publisher_id in publishers:
-      key = key_builder(f"{prefix}:category_latest", f"{category_id}:{publisher_id}")
-      all_keys.append(key)
-  
-  print("all_keys: ", all_keys)
+  for publisher_id in publishers:
+    key = key_builder(f"{prefix}:category_latest", f"{category}:{publisher_id}")
+    all_keys.append(key)
   values = await mget_cache(all_keys)
-  all_stories = [dict(json.loads(value)) for value in values if value!=None] if values!=None else []
   
-  ### TODO: Pagination for all_stories
-  return dict({"data": all_stories})
+  ### organize the data
+  values_filtered = [dict(json.loads(value)) for value in values if value!=None] if values!=None else []
+  all_stories = []
+  update_time = 0
+  for value in values_filtered:
+    update_time = value.get('update_time', 0) if update_time < value.get('update_time', 0) else update_time
+    stories = value.get('data', [])
+    for story in stories:
+      published_date = story['published_date']
+      published_timestamp = datetime.strptime(published_date, "%Y-%m-%dT%H:%M:%S.%fZ").timestamp()
+      story['published_timestamp'] = published_timestamp
+      all_stories.append(story)
+  all_stories = sorted(all_stories, key=lambda x: x['published_timestamp'], reverse=True)  
+  expire_time = update_time + config.EXPIRE_LATEST_STORIES_TIME
+  response = dict({
+    "update_time": update_time,
+    "expire_time": expire_time,
+    "num_stories": len(all_stories),
+    "stories": all_stories
+  })
+  return response
 
 @app.on_event("startup")
 async def startup():
