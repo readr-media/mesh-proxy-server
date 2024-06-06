@@ -120,7 +120,7 @@ async def latest_stories(latestStories: LatestStories):
     stories = value.get('data', [])
     for story in stories:
       published_date = story['published_date']
-      published_timestamp = datetime.strptime(published_date, "%Y-%m-%dT%H:%M:%S.%fZ").timestamp()
+      published_timestamp = int(datetime.strptime(published_date, "%Y-%m-%dT%H:%M:%S.%fZ").timestamp())
       story['published_timestamp'] = published_timestamp
       all_stories.append(story)
   all_stories = sorted(all_stories, key=lambda x: x['published_timestamp'], reverse=True)  
