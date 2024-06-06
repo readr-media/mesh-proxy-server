@@ -19,11 +19,11 @@ class LatestStories(BaseModel):
   category: int
   num_stories: Optional[int] = config.DEFAULT_LATEST_STORIES_NUM
   
-  @field_validator('categories')
+  @field_validator('publishers')
   @classmethod
   def category_rules(cls, v: list[str]):
     if len(v)==0:
-      raise ValidationError('Invalid input. List of categories and publishers should not be empty.')
+      raise ValidationError('Invalid input. List of publishers should not be empty.')
     return v
   
   @field_validator('category')
