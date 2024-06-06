@@ -110,8 +110,11 @@ async def latest_stories(latestStories: LatestStories):
       key = key_builder(f"{prefix}:category_latest", f"{category_id}:{publisher_id}")
       all_keys.append(key)
   
+  print("all_keys: ", all_keys)
   values = await mget_cache(all_keys)
-  all_stories = [dict(json.loads(value)) for value in values if value!=None]
+  all_stories = [dict(json.loads(value)) for value in values if value!=None] if values!=None else []
+  
+  ### TODO: Pagination for all_stories
   return dict({"data": all_stories})
 
 @app.on_event("startup")
