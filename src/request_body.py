@@ -17,7 +17,6 @@ class DictQuery(BaseModel):
 class LatestStories(BaseModel):
   publishers: list[str] = []
   category: int
-  num_stories: Optional[int] = config.DEFAULT_LATEST_STORIES_NUM
   
   @field_validator('publishers')
   @classmethod
