@@ -8,7 +8,8 @@ from redis import asyncio as aioredis
 
 from src.gql import gql_stories, gql_query_forward
 from src.request_body import LatestStories, GqlQuery
-from src.cache import check_cache_gql, check_cache_http
+from src.key_builder import key_builder
+from src.cache import check_cache_http, mget_cache
 import os
 import src.config as config
 from google.cloud import pubsub_v1
@@ -98,31 +99,20 @@ async def latest_stories(latestStories: LatestStories):
   '''
   Get latest stories by publisher ids. Default latest_stories_num for each publisher is 30.
   '''
-  gql_endpoint = os.environ['MESH_GQL_ENDPOINT']
+  categories = latestStories.categories
   publishers = latestStories.publishers
-  if len(publishers)==0:
-    return JSONResponse(
-        status_code=status.HTTP_400_BAD_REQUEST,
-        content={"message": f"Invalid publishers field, it cannot be empty list."},
-    )
-    
-  all_stories = []
-  for publisher_id in publishers:
-    gql_stories_string = gql_stories.format(ID=publisher_id, TAKE=config.DEFAULT_LATEST_STORIES_NUM)
-    gql_payload = {
-      "query": gql_stories_string
-    }
-    response, error_message = await check_cache_gql(
-      gql_endpoint = gql_endpoint,
-      gql_payload = gql_payload,
-      ttl = config.DEFAULT_LATEST_STORIES_TTL
-    )
-    if error_message:
-      print(f"{error_message} when fetching latest stories.")
-    else:
-      stories = response.get('stories', [])
-      all_stories.extend(stories)
-  return dict({"latest_stories:": all_stories, "num_stories": len(all_stories)})
+  start_index = latestStories.start_index
+  prefix = FastAPICache.get_prefix()
+  
+  all_keys = []
+  for category_id in categories:
+    for publisher_id in publishers:
+      key = key_builder(f"{prefix}:category_latest", f"{category_id}:{publisher_id}")
+      all_keys.append(key)
+  
+  values = await mget_cache(all_keys)
+  all_stories = [dict(json.loads(value)) for value in values if value!=None]
+  return dict({"data": all_stories})
 
 @app.on_event("startup")
 async def startup():
