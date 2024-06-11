@@ -38,7 +38,7 @@ async def health_checking():
   return dict(message="Health check for mesh-proxy-server")
 
 @app.post('/pubsub')
-async def pubsub(request: str):
+async def pubsub(request: dict):
   '''
   Forward pubsub messages
   '''
@@ -47,8 +47,7 @@ async def pubsub(request: str):
   
   print("pubsub: ", request)
   ### publish data
-  # payload = json.dumps(request).encode('utf-8')
-  payload = request
+  payload = json.dumps(request).encode('utf-8')
   if payload==None:
     return JSONResponse(
       status_code=status.HTTP_400_BAD_REQUEST,
