@@ -1,6 +1,6 @@
 import hashlib
 
-def gql_key_builder(
+def key_builder(
     prefix: str = "",
     request: str = "",
 ) -> str:

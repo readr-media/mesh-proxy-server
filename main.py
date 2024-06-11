@@ -3,16 +3,18 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from fastapi_cache import FastAPICache
-from fastapi_cache.backends.redis import RedisBackend
+from src.backend.redis import RedisBackendExtend
 from redis import asyncio as aioredis
 
-from src.gql import gql_stories, gql_query_forward
+from src.gql import gql_query_forward
 from src.request_body import LatestStories, GqlQuery
-from src.cache import check_cache_gql, check_cache_http
+from src.key_builder import key_builder
+from src.cache import check_cache_http, mget_cache
 import os
-import src.config as config
 from google.cloud import pubsub_v1
 import json
+from datetime import datetime
+import src.config as config
 
 ### App related variables
 app = FastAPI()
@@ -100,35 +102,42 @@ async def latest_stories(latestStories: LatestStories):
   '''
   Get latest stories by publisher ids. Default latest_stories_num for each publisher is 30.
   '''
-  gql_endpoint = os.environ['MESH_GQL_ENDPOINT']
   publishers = latestStories.publishers
-  if len(publishers)==0:
-    return JSONResponse(
-        status_code=status.HTTP_400_BAD_REQUEST,
-        content={"message": f"Invalid publishers field, it cannot be empty list."},
-    )
-    
-  all_stories = []
+  category = latestStories.category
+  prefix = FastAPICache.get_prefix()
+  
+  ### get data from redis
+  all_keys = []
   for publisher_id in publishers:
-    gql_stories_string = gql_stories.format(ID=publisher_id, TAKE=config.DEFAULT_LATEST_STORIES_NUM)
-    gql_payload = {
-      "query": gql_stories_string
-    }
-    response, error_message = await check_cache_gql(
-      gql_endpoint = gql_endpoint,
-      gql_payload = gql_payload,
-      ttl = config.DEFAULT_LATEST_STORIES_TTL
-    )
-    if error_message:
-      print(f"{error_message} when fetching latest stories.")
-    else:
-      stories = response.get('stories', [])
-      all_stories.extend(stories)
-  return dict({"latest_stories:": all_stories, "num_stories": len(all_stories)})
+    key = key_builder(f"{prefix}:category_latest", f"{category}:{publisher_id}")
+    all_keys.append(key)
+  values = await mget_cache(all_keys)
+  
+  ### organize the data
+  values_filtered = [dict(json.loads(value)) for value in values if value!=None] if values!=None else []
+  all_stories = []
+  update_time = 0
+  for value in values_filtered:
+    update_time = value.get('update_time', 0) if update_time < value.get('update_time', 0) else update_time
+    stories = value.get('data', [])
+    for story in stories:
+      published_date = story['published_date']
+      published_timestamp = int(datetime.strptime(published_date, "%Y-%m-%dT%H:%M:%S.%fZ").timestamp())
+      story['published_timestamp'] = published_timestamp
+      all_stories.append(story)
+  all_stories = sorted(all_stories, key=lambda x: x['published_timestamp'], reverse=True)  
+  expire_time = update_time + config.EXPIRE_LATEST_STORIES_TIME
+  response = dict({
+    "update_time": update_time,
+    "expire_time": expire_time,
+    "num_stories": len(all_stories),
+    "stories": all_stories
+  })
+  return response
 
 @app.on_event("startup")
 async def startup():
   NAMESPACE = os.environ.get('NAMESPACE', 'dev')
   redis_endpoint = os.environ.get('REDIS_ENDPOINT', 'redis-cache:6379')
   redis = aioredis.from_url(f"redis://{redis_endpoint}", encoding="utf8", decode_responses=True)
-  FastAPICache.init(RedisBackend(redis), prefix=f"{NAMESPACE}")
+  FastAPICache.init(RedisBackendExtend(redis), prefix=f"{NAMESPACE}")

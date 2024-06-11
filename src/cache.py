@@ -1,8 +1,17 @@
 import json
 from fastapi_cache import FastAPICache
-from src.key_builder import gql_key_builder
+from src.key_builder import key_builder
 from src.gql import gql_query, gql_query_forward
 import src.config as config
+
+async def mget_cache(cache_keys: list[str]):
+    data = None
+    try:
+        backend  = FastAPICache.get_backend()
+        data = await backend.mget(cache_keys)
+    except Exception as e:
+        print(f"Error retrieving data by mget from backend, error_message: {e}")
+    return data
 
 async def get_cache(backend, cache_key: str):
     try:
@@ -25,7 +34,7 @@ async def check_cache_http(gql_endpoint: str, gql_payload: dict, ttl: int=config
     ### build cache key
     prefix = FastAPICache.get_prefix()
     backend  = FastAPICache.get_backend()
-    cache_key = gql_key_builder(f"{prefix}", json.dumps(gql_payload))
+    cache_key = key_builder(f"{prefix}", json.dumps(gql_payload))
     
     ### check cache
     cached_ttl, cached = await get_cache(backend, cache_key)
@@ -45,7 +54,7 @@ async def check_cache_gql(gql_endpoint: str, gql_payload: dict, ttl: int = confi
     ### build cache key
     prefix = FastAPICache.get_prefix()
     backend  = FastAPICache.get_backend()
-    cache_key = gql_key_builder(f"{prefix}:gql", json.dumps(gql_payload))
+    cache_key = key_builder(f"{prefix}:gql", json.dumps(gql_payload))
     
     ### unpack payload
     gql_string = gql_payload.get('query', None)
