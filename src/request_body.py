@@ -17,7 +17,7 @@ class DictQuery(BaseModel):
 class LatestStories(BaseModel):
   publishers: list[str] = []
   category: int
-  index: int
+  index: int = config.DEFAULT_LATEST_STORIES_INDEX
   take: int = config.DEFAULT_LATEST_STORIES_TAKE
   
   @field_validator('publishers')
