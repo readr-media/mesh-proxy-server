@@ -103,6 +103,8 @@ async def latest_stories(latestStories: LatestStories):
   '''
   publishers = latestStories.publishers
   category = latestStories.category
+  index = latestStories.index
+  take = latestStories.take
   prefix = FastAPICache.get_prefix()
   
   ### get data from redis
@@ -124,13 +126,14 @@ async def latest_stories(latestStories: LatestStories):
       published_timestamp = int(datetime.strptime(published_date, "%Y-%m-%dT%H:%M:%S.%fZ").timestamp())
       story['published_timestamp'] = published_timestamp
       all_stories.append(story)
-  all_stories = sorted(all_stories, key=lambda x: x['published_timestamp'], reverse=True)  
   expire_time = update_time + config.EXPIRE_LATEST_STORIES_TIME
+  all_stories = sorted(all_stories, key=lambda x: x['published_timestamp'], reverse=True)  
+  all_stories_pagination = all_stories[index: index+take]
   response = dict({
     "update_time": update_time,
     "expire_time": expire_time,
-    "num_stories": len(all_stories),
-    "stories": all_stories
+    "num_stories": len(all_stories_pagination),
+    "stories": all_stories_pagination
   })
   return response
 
