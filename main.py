@@ -132,7 +132,7 @@ async def latest_stories(latestStories: LatestStories):
   response = dict({
     "update_time": update_time,
     "expire_time": expire_time,
-    "num_stories": len(all_stories_pagination),
+    "num_stories": len(all_stories),
     "stories": all_stories_pagination
   })
   return response
