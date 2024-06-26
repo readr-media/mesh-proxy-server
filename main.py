@@ -39,8 +39,8 @@ async def health_checking():
 
 @app.get('/access_token')
 async def access_token(token: Optional[str] = Header(None)):
-    uid = Authentication.verifyIdToken(token)
-    return {"uid": uid}
+    result = Authentication.verifyIdToken(token)
+    return result
 
 @app.post('/pubsub')
 async def pubsub(request: dict):
