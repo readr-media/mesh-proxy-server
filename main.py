@@ -17,7 +17,7 @@ from google.cloud import pubsub_v1
 import os
 import json
 from datetime import datetime
-from typing import Annotated
+from typing import Optional
 
 ### App related variables
 app = FastAPI()
@@ -38,7 +38,7 @@ async def health_checking():
   return dict(message="Health check for mesh-proxy-server")
 
 @app.get('/access_token')
-async def access_token(user_agent: Annotated[str | None, Header()] = None):
+async def access_token(user_agent: Optional[str] = Header(None)):
     return {"User-Agent": user_agent}
 
 @app.post('/pubsub')
