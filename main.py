@@ -1,4 +1,4 @@
-from fastapi import FastAPI, status
+from fastapi import FastAPI, status, Header
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
@@ -10,12 +10,14 @@ from src.gql import gql_query_forward
 from src.request_body import LatestStories, GqlQuery
 from src.key_builder import key_builder
 from src.cache import check_cache_http, mget_cache
-from src.auth import Authentication
-import os
+import src.auth as Authentication
+import src.config as config
+
 from google.cloud import pubsub_v1
+import os
 import json
 from datetime import datetime
-import src.config as config
+from typing import Annotated
 
 ### App related variables
 app = FastAPI()
@@ -33,15 +35,11 @@ app.add_middleware(
 ### API Design
 @app.get('/')
 async def health_checking():
-  '''
-  Health checking API. You can only use @cache decorator to get method.
-  '''
   return dict(message="Health check for mesh-proxy-server")
 
 @app.get('/access_token')
-async def access_token():
-  Authentication.verifyTokenByFirebaseAdmin()
-  return "ok"
+async def access_token(user_agent: Annotated[str | None, Header()] = None):
+    return {"User-Agent": user_agent}
 
 @app.post('/pubsub')
 async def pubsub(request: dict):
@@ -145,7 +143,11 @@ async def latest_stories(latestStories: LatestStories):
 
 @app.on_event("startup")
 async def startup():
+  ### initialize redis and fastapi cache
   NAMESPACE = os.environ.get('NAMESPACE', 'dev')
   redis_endpoint = os.environ.get('REDIS_ENDPOINT', 'redis-cache:6379')
   redis = aioredis.from_url(f"redis://{redis_endpoint}", encoding="utf8", decode_responses=True)
   FastAPICache.init(RedisBackendExtend(redis), prefix=f"{NAMESPACE}")
+  
+  ### initialize firebase
+  Authentication.initFirebaseAdmin()
