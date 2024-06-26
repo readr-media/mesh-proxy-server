@@ -5,9 +5,9 @@ firebase_app = None
 
 def verifyTokenByFirebaseAdmin():
     firebase_project_id = os.environ.get('FIREBASE_PROJECT_ID', '')
-    if firebaseapp==None:
+    if firebase_app==None:
         print("initialize app by firebase admin")
-        firebaseapp = firebase_admin.initialize_app({
+        firebase_app = firebase_admin.initialize_app({
             "projectId": firebase_project_id
         })
     return True
