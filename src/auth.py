@@ -2,6 +2,7 @@ import firebase_admin
 from firebase_admin import auth
 import os
 from src.tool import save_keyfile_from_url
+import src.config as config
 
 def initFirebaseAdmin():
     '''
@@ -17,16 +18,14 @@ def initFirebaseAdmin():
     print(f"Firebase project_id is {firebase_app.project_id}")
 
 def verifyIdToken(id_token):
-    verify_result, error_message = False, None
+    uid, error_message = config.VERIFY_FAILED_ID, ""
     try:
         decoded_token = auth.verify_id_token(id_token)
-        uid = decoded_token.get('uid', None)
-        print("verifyIdToken decoded uid: ", uid)
-        verify_result = True
+        uid = decoded_token.get('uid', config.VERIFY_FAILED_ID)
     except Exception as e:
         print("verifyIdToken error: ", e)
         error_message = e
     return {
-        "verify_result": verify_result,
-        "error_message": error_message
+        "uid": uid,
+        "verify_msg": error_message
     }

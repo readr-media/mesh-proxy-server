@@ -1,4 +1,4 @@
-from fastapi import FastAPI, status, Header
+from fastapi import FastAPI, status, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
@@ -27,15 +27,22 @@ app.add_middleware(
     allow_headers = headers
 )
 
+### Middlewares
+@app.middleware("http")
+async def middleware_verify_token(request: Request, call_next):
+    token = request.headers.get("token", None)
+    result = Authentication.verifyIdToken(token)
+    # if not token:
+    #     raise HTTPException(status_code=400, detail="Token header is missing")
+    response = await call_next(request)
+    response.headers["uid"] = str(result['uid'])
+    response.headers["verify_msg"] = str(result['verify_msg'])
+    return response
+
 ### API Design
 @app.get('/')
 async def health_checking():
   return dict(message="Health check for mesh-proxy-server")
-
-@app.get('/access_token')
-async def access_token(token: Optional[str] = Header(None)):
-    result = Authentication.verifyIdToken(token)
-    return result
 
 @app.post('/pubsub')
 async def pubsub(request: dict):
