@@ -10,7 +10,7 @@ from src.gql import gql_query_forward
 from src.request_body import LatestStories, GqlQuery
 from src.key_builder import key_builder
 from src.cache import check_cache_http, mget_cache
-from src.auth import verifyTokenByFirebaseAdmin
+from src.auth import Authentication
 import os
 from google.cloud import pubsub_v1
 import json
@@ -40,7 +40,7 @@ async def health_checking():
 
 @app.get('/access_token')
 async def access_token():
-  verifyTokenByFirebaseAdmin()
+  Authentication.verifyTokenByFirebaseAdmin()
   return "ok"
 
 @app.post('/pubsub')
