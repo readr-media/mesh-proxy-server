@@ -1,6 +1,5 @@
 from gql.transport.requests import RequestsHTTPTransport
 from gql import gql, Client
-
 import requests
 
 def gql_query_forward(gql_endpoint, json_payload: dict):

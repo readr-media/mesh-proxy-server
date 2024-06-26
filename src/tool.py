@@ -1,6 +1,7 @@
 import json
 import os
 import requests
+import hashlib
 
 def save_file(dest_filename, data):
     if data:
@@ -13,3 +14,12 @@ def save_file(dest_filename, data):
 def save_keyfile_from_url(url: str, path: str):
     res = requests.get(url)
     save_file(path, res.json())
+    
+def key_builder(
+    prefix: str = "",
+    request: str = "",
+) -> str:
+    cache_key = hashlib.md5(  # noqa: S324
+        f"{request}".encode()
+    ).hexdigest()
+    return f"{prefix}:{cache_key}"
