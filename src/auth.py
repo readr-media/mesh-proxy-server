@@ -8,7 +8,7 @@ class _Authentication():
         firebase_project_id = os.environ.get('FIREBASE_PROJECT_ID', '')
         if self.firebase_app==None:
             print("initialize app by firebase admin")
-            firebase_app = firebase_admin.initialize_app({
+            self.firebase_app = firebase_admin.initialize_app({
                 "projectId": firebase_project_id
             })
 
