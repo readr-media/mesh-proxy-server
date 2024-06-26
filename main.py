@@ -35,8 +35,8 @@ async def middleware_verify_token(request: Request, call_next):
     # if not token:
     #     raise HTTPException(status_code=400, detail="Token header is missing")
     response = await call_next(request)
-    response.headers["uid"] = str(result['uid'])
-    response.headers["verify_msg"] = str(result['verify_msg'])
+    response.headers["Uid"] = str(result['uid'])
+    response.headers["Verify-Message"] = str(result['verify_msg'])
     return response
 
 ### API Design
