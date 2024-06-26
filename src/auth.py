@@ -8,7 +8,7 @@ def initFirebaseAdmin():
     Before we use Firebase SDK, we should intialize app.
     Note that firebase_admin itself is singleton, don't need to manage it by yourself.
     '''
-    credential_url = os.environ['GOOGLE_APPLICATION_CREDENTIALS']
+    credential_url = os.environ['FIREBASE_CREDENTIALS']
     service_key_path = os.path.join('credential', 'keyfile.json')
     save_keyfile_from_url(credential_url, service_key_path)
     

@@ -12,12 +12,14 @@ from src.key_builder import key_builder
 from src.cache import check_cache_http, mget_cache
 import src.auth as Authentication
 import src.config as config
+import src.proxy as proxy
 
 from google.cloud import pubsub_v1
 import os
 import json
 from datetime import datetime
 from typing import Optional
+
 
 ### App related variables
 app = FastAPI()
@@ -47,26 +49,14 @@ async def pubsub(request: dict):
   '''
   Forward pubsub messages
   '''
-  topic_path = os.environ['PUBSUB_TOPIC']
-  publisher = pubsub_v1.PublisherClient()
-  
   print("pubsub: ", request)
-  ### publish data
   payload = json.dumps(request).encode('utf-8')
   if payload==None:
     return JSONResponse(
       status_code=status.HTTP_400_BAD_REQUEST,
       content={"message": "Json payload cannot be empty."}
     )
-  publisher = pubsub_v1.PublisherClient()
-  ### publisher will automatically encode the payload with base64
-  future = publisher.publish(topic_path, payload)
-  response = 'Abnormal event happened when publishing message.'
-  try:
-    message_id = future.result()
-    response = f"Message published with ID: {message_id}."
-  except Exception as e:
-    response = f"Failed to publish message. Error: {e}."
+  response = proxy.pubsub_proxy(payload)
   print("pubsub response: ", response)
   return dict({"message": response})
 
@@ -77,7 +67,7 @@ async def gql(request: GqlQuery):
   '''
   gql_endpoint = os.environ['MESH_GQL_ENDPOINT']
   gql_payload = request.model_dump()
-  response, error_message = gql_query_forward(gql_endpoint, gql_payload)
+  response, error_message = proxy.gql_proxy_without_cache(gql_endpoint, gql_payload)
   if error_message:
     return JSONResponse(
       status_code=status.HTTP_400_BAD_REQUEST,
