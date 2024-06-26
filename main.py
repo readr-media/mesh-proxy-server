@@ -38,8 +38,9 @@ async def health_checking():
   return dict(message="Health check for mesh-proxy-server")
 
 @app.get('/access_token')
-async def access_token(authorization: Optional[str] = Header(None)):
-    return {"Authorization": authorization}
+async def access_token(token: Optional[str] = Header(None)):
+    uid = Authentication.verifyIdToken(token)
+    return {"uid": uid}
 
 @app.post('/pubsub')
 async def pubsub(request: dict):
