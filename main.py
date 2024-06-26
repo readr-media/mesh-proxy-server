@@ -10,6 +10,7 @@ from src.gql import gql_query_forward
 from src.request_body import LatestStories, GqlQuery
 from src.key_builder import key_builder
 from src.cache import check_cache_http, mget_cache
+from src.auth import verifyTokenByFirebaseAdmin
 import os
 from google.cloud import pubsub_v1
 import json
@@ -36,6 +37,11 @@ async def health_checking():
   Health checking API. You can only use @cache decorator to get method.
   '''
   return dict(message="Health check for mesh-proxy-server")
+
+@app.get('/access_token')
+async def access_token():
+  verifyTokenByFirebaseAdmin()
+  return "ok"
 
 @app.post('/pubsub')
 async def pubsub(request: dict):

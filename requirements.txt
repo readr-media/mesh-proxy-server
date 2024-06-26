@@ -7,6 +7,7 @@ pydantic==2.6.3
 aiohttp==3.8.1
 gql==3.0.0
 google-cloud-pubsub==2.21.1
-fastapi-cache2
-redis
-requests_toolbelt
+fastapi-cache2==0.2.1
+redis==4.6.0
+requests_toolbelt==1.0.0
+firebase-admin==6.5.0
