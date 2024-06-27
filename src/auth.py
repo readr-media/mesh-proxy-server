@@ -21,9 +21,9 @@ def verifyIdToken(id_token):
     uid, error_message = config.VERIFY_FAILED_ID, ""
     try:
         decoded_token = auth.verify_id_token(id_token)
+        print("verifyIdToken decoded_token: ", decoded_token)
         uid = decoded_token.get('uid', config.VERIFY_FAILED_ID)
     except Exception as e:
-        print("verifyIdToken error: ", e)
         error_message = e
     print(f"verifyIdToken uid: {uid}, error_message: {error_message}")
     return {
