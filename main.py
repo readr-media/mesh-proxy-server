@@ -12,7 +12,6 @@ import src.proxy as proxy
 
 import os
 import json
-from typing import Optional
 
 ### App related variables
 app = FastAPI()
@@ -28,16 +27,16 @@ app.add_middleware(
 )
 
 ### Middlewares
-# @app.middleware("http")
-# async def middleware_verify_token(request: Request, call_next):
-#     token = request.headers.get("token", None)
-#     result = Authentication.verifyIdToken(token)
-#     # if not token:
-#     #     raise HTTPException(status_code=400, detail="Token header is missing")
-#     response = await call_next(request)
-#     response.headers["Uid"] = str(result['uid'])
-#     response.headers["Verify-Message"] = str(result['verify_msg'])
-#     return response
+@app.middleware("http")
+async def middleware_verify_token(request: Request, call_next):
+    token = request.headers.get("token", None)
+    result = Authentication.verifyIdToken(token)
+    # if not token:
+    #     raise HTTPException(status_code=400, detail="Token header is missing")
+    response = await call_next(request)
+    response.headers["Uid"] = str(result['uid'])
+    response.headers["Verify-Message"] = str(result['verify_msg'])
+    return response
 
 ### API Design
 @app.get('/')
@@ -96,7 +95,7 @@ async def latest_stories(latestStories: LatestStories):
   '''
   Get latest stories by publisher ids.
   '''
-  response = proxy.latest_stories_proxy(latestStories)
+  response = await proxy.latest_stories_proxy(latestStories)
   return response
 
 @app.on_event("startup")
