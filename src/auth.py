@@ -25,6 +25,7 @@ def verifyIdToken(id_token):
     except Exception as e:
         print("verifyIdToken error: ", e)
         error_message = e
+    print(f"verifyIdToken uid: {uid}, error_message: {error_message}")
     return {
         "uid": uid,
         "verify_msg": error_message
