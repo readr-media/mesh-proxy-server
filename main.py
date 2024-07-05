@@ -1,14 +1,17 @@
-from fastapi import FastAPI, status, Request, HTTPException
+from fastapi import FastAPI, status, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from fastapi_cache import FastAPICache
+from fastapi_cache.decorator import cache
 from src.backend.redis import RedisBackendExtend
 from redis import asyncio as aioredis
 
 from src.request_body import LatestStories, GqlQuery
 import src.auth as Authentication
 import src.proxy as proxy
+from src.search import search_related_stories
+import src.config as config
 
 import os
 import json
@@ -97,6 +100,13 @@ async def latest_stories(latestStories: LatestStories):
   '''
   response = await proxy.latest_stories_proxy(latestStories)
   return response
+
+@app.get('/search/{search_text}')
+@cache(expire=config.SEARCH_EXPIRE_TIME)
+async def search(search_text: str):
+  print("search_text is: ", search_text)
+  related_stories = search_related_stories(search_text)
+  return related_stories
 
 @app.on_event("startup")
 async def startup():
