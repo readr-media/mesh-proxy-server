@@ -33,6 +33,8 @@ app.add_middleware(
 @app.middleware("http")
 async def middleware_verify_token(request: Request, call_next):
     token = (request.headers.get("token", None) or request.cookies.get('token', None))
+    print("header token: ", request.headers.get("token", ''))
+    print("cookie token: ", request.cookies.get('token', ''))
     result = Authentication.verifyIdToken(token)
     # if not token:
     #     raise HTTPException(status_code=400, detail="Token header is missing")
