@@ -47,3 +47,37 @@ query Stories{{
   }}
 }}
 """
+
+gql_transactions = """
+query transactions{{
+  transactions(
+    where: {{
+      member: {{
+        firebaseId: {{
+          equals: \"{FIREBASE_ID}\"
+        }}
+      }},
+      active: {{
+        equals: true
+      }},
+      status: {{
+        equals: Success
+      }}
+    }}){{
+    id
+    policy{{
+      type
+      unlockSingle
+      publisher{{
+        id
+        title
+      }}
+    }}
+    tid
+    unlockStory{{
+      id
+    }}
+    expireDate
+  }}
+}}
+"""
