@@ -52,11 +52,17 @@ async def health_checking():
 async def accesstoken(request: Request):
   token = (request.headers.get("token", None) or request.cookies.get('token', None))
   if not token:
-    raise HTTPException(status_code=400, detail="Token header is missing")
+    return JSONResponse(
+      status_code=status.HTTP_400_BAD_REQUEST,
+      content={"message": "Token is missing."}
+    )
   
   uid, error_message = Authentication.verifyIdToken(token)
   if error_message:
-    raise HTTPException(status_code=400, detail=error_message)
+    return JSONResponse(
+      status_code=status.HTTP_400_BAD_REQUEST,
+      content={"message": error_message}
+    )
   jwt_token = generate_jwt_token(uid)
   
   return jwt_token
