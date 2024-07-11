@@ -61,7 +61,7 @@ async def accesstoken(request: Request):
   if error_message:
     return JSONResponse(
       status_code=status.HTTP_400_BAD_REQUEST,
-      content={"message": error_message}
+      content={"message": f"verifyIdToken failed. {error_message}"}
     )
   jwt_token = generate_jwt_token(uid)
   if jwt_token==None:
