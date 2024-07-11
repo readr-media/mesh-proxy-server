@@ -48,7 +48,7 @@ app.add_middleware(
 async def health_checking():
   return dict(message="Health check for mesh-proxy-server")
 
-@app.get('/accesstoken')
+@app.post('/accesstoken')
 async def accesstoken(request: Request):
   token = (request.headers.get("token", None) or request.cookies.get('token', None))
   if not token:
