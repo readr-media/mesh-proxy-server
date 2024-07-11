@@ -1,4 +1,4 @@
-from fastapi import FastAPI, status, Request
+from fastapi import FastAPI, status, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
@@ -11,6 +11,7 @@ from src.request_body import LatestStories, GqlQuery
 import src.auth as Authentication
 import src.proxy as proxy
 from src.search import search_related_stories
+from src.accesstoken import generate_jwt_token
 import src.config as config
 
 import os
@@ -30,22 +31,35 @@ app.add_middleware(
 )
 
 ### Middlewares
-@app.middleware("http")
-async def middleware_verify_token(request: Request, call_next):
-    token = (request.headers.get("token", None) or request.cookies.get('token', None))
-    print('cookies info: ', request.cookies)
-    result = Authentication.verifyIdToken(token)
+# @app.middleware("http")
+# async def middleware_verify_token(request: Request, call_next):
+#     token = (request.headers.get("token", None) or request.cookies.get('token', None))
+#     print('cookies info: ', request.cookies)
     # if not token:
     #     raise HTTPException(status_code=400, detail="Token header is missing")
-    response = await call_next(request)
-    response.headers["Uid"] = str(result['uid'])
-    response.headers["Verify-Message"] = str(result['verify_msg'])
-    return response
+    # uid, error_message = Authentication.verifyIdToken(token)
+    # response = await call_next(request)
+    # response.headers["Uid"] = str(uid)
+    # response.headers["Verify-Message"] = str(error_message)
+    # return response
 
 ### API Design
 @app.get('/')
 async def health_checking():
   return dict(message="Health check for mesh-proxy-server")
+
+@app.get('/accesstoken')
+async def accesstoken(request: Request):
+  token = (request.headers.get("token", None) or request.cookies.get('token', None))
+  if not token:
+    raise HTTPException(status_code=400, detail="Token header is missing")
+  
+  uid, error_message = Authentication.verifyIdToken(token)
+  if error_message:
+    raise HTTPException(status_code=400, detail=error_message)
+  jwt_token = generate_jwt_token(uid)
+  
+  return jwt_token
 
 @app.post('/pubsub')
 async def pubsub(request: dict):
