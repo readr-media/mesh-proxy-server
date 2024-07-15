@@ -50,23 +50,23 @@ async def health_checking():
 
 @app.post('/accesstoken')
 async def accesstoken(request: Request):
-  token = (request.headers.get("token", None) or request.cookies.get('token', None))
+  token = (request.headers.get("Authorization", None) or request.cookies.get('Authorization', None))
   if not token:
     return JSONResponse(
-      status_code=status.HTTP_400_BAD_REQUEST,
+      status_code=status.HTTP_401_UNAUTHORIZED,
       content={"message": "Token is missing."}
     )
   
   uid, error_message = Authentication.verifyIdToken(token)
   if error_message:
     return JSONResponse(
-      status_code=status.HTTP_400_BAD_REQUEST,
+      status_code=status.HTTP_401_UNAUTHORIZED,
       content={"message": f"verifyIdToken failed. {error_message}"}
     )
   jwt_token = generate_jwt_token(uid)
   if jwt_token==None:
     return JSONResponse(
-      status_code=status.HTTP_400_BAD_REQUEST,
+      status_code=status.HTTP_401_UNAUTHORIZED,
       content={"message": "Failed to generate jwt token."}
     )
   return JSONResponse(
