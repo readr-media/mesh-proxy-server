@@ -23,12 +23,11 @@ def pubsub_proxy(payload):
         response += f" Error: {e}."
     return response
 
-def gql_proxy_without_cache(gql_endpoint, json_payload: dict):
+def gql_proxy_without_cache(gql_endpoint, json_payload: dict, headers: dict=None):
     json_data, error_message = None, None
     try:
-      response = requests.post(gql_endpoint, json=json_payload)
+      response = requests.post(gql_endpoint, json=json_payload, headers=headers)
       json_data = response.json()
-      print("Return data is: ", json_data)
     except Exception as e:
       print("GQL query error:", e)
       error_message = e
