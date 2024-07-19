@@ -72,7 +72,7 @@ async def accesstoken(request: Request):
     )
   return JSONResponse(
     status_code=status.HTTP_200_OK,
-    content=jwt_token
+    content={"token": json.dumps(jwt_token)}
   )
 
 @app.post('/pubsub')
