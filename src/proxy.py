@@ -9,8 +9,11 @@ from src.cache import get_cache, set_cache, mget_cache
 from src.request_body import LatestStories
 from datetime import datetime
 
-def pubsub_proxy(payload):
-    topic_path = os.environ['PUBSUB_TOPIC']
+def pubsub_proxy(payload, action_type: str='user_action'):
+    if action_type == 'payment':
+      topic_path = os.environ['PUBSUB_TOPIC_PAYMENT']
+    else:
+      topic_path = os.environ['PUBSUB_TOPIC_USERACTION']
     publisher = pubsub_v1.PublisherClient()
     
     ### publisher will automatically encode the payload with base64

@@ -13,3 +13,10 @@ MEILISEARCH_INDEX = 'mesh'
 MEILISEARCH_RELATED_STORIES_NUM = 5
 SEARCH_EXPIRE_TIME = 600
 JWT_EXPIRE_HOURS = 3
+
+### Support multiple different pubsub topics, key is the topic abbreviated name, value is the actions in the topic
+PUBSUB_TOPIC_ACTIONS = {
+    'payment': set([
+        'unlock_story_single', 'unlock_story_media', 'unlock_all', 'deposit', 'sponsor_media'
+    ])
+}

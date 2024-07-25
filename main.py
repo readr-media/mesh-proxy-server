@@ -80,14 +80,22 @@ async def pubsub(request: dict):
   '''
   Forward pubsub messages
   '''
-  print("pubsub: ", request)
+  ### categorize pubsub into different topics
+  action = request.get('action', '')
+  action_type = 'user_action'
+  for topic, actions in config.PUBSUB_TOPIC_ACTIONS.items():
+    if action in actions:
+      action_type = topic
+  print(f"pubsub action {action} matches action_type {action_type}")
+    
+  ### forward pubsub messages
   payload = json.dumps(request).encode('utf-8')
   if payload==None:
     return JSONResponse(
       status_code=status.HTTP_400_BAD_REQUEST,
       content={"message": "Json payload cannot be empty."}
     )
-  response = proxy.pubsub_proxy(payload)
+  response = proxy.pubsub_proxy(payload, action_type)
   print("pubsub response: ", response)
   return dict({"message": response})
 
