@@ -12,7 +12,7 @@ def middleware_story_acl(request: Request):
         Check jwt_token which is retrieved from /accesstoken. 
         If jwt_token is valid, we dispatch the transactions into the ACL of gql forward header. 
     '''
-    acl_header, error_msg = None, None
+    acl_header, error_msg = {}, None
     
     ### check the existence of Authroization header, which is jwt_token
     jwt_token = request.headers.get("Authorization", None)
@@ -59,5 +59,5 @@ def middleware_story_acl(request: Request):
             }
     except Exception as e:
         print("middleware_story_acl error: ", e)
-        return None, None
+        return acl_header, None
     return acl_header, None
