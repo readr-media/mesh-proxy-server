@@ -7,6 +7,24 @@ from src.accesstoken import verify_jwt_token
 import json
 from fastapi import Request
 
+async def middleware_content_type(request: Request):
+    '''
+        Checkt the content-type, and parse the corresponding payload 
+    '''
+    content_header, gql_payload = None, None
+    content_type = request.headers.get('Content-Type', '')
+    
+    if 'application/json' in content_type:
+        gql_payload = await request.json()
+    elif 'multipart/form-data' in content_type:
+        form = await request.form()
+        gql_payload = {key: value for key, value in form.items()}
+    content_header = {
+        "Content-Type": content_type
+    }
+    return content_header, gql_payload
+
+
 def middleware_story_acl(request: Request):
     '''
         Check jwt_token which is retrieved from /accesstoken. 

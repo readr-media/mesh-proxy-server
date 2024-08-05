@@ -40,7 +40,7 @@ def gql_proxy_without_cache(gql_endpoint, json_payload: dict, headers: dict=None
 async def gql_proxy_raw(gql_endpoint: str, data: bytes, headers: dict):
     json_data, error_message = None, None
     try:
-        timeout = httpx.Timeout(30.0)
+        timeout = httpx.Timeout(config.PROXY_TIMEOUT_SEC)
         async with httpx.AsyncClient(timeout=timeout) as client:
             response = await client.post(gql_endpoint, content=data, headers=headers)
             json_data = response.json()

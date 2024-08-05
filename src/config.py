@@ -20,3 +20,5 @@ PUBSUB_TOPIC_ACTIONS = {
         'unlock_story_single', 'unlock_story_media', 'unlock_all', 'deposit', 'sponsor_media'
     ])
 }
+
+PROXY_TIMEOUT_SEC = 30
