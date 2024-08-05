@@ -12,7 +12,7 @@ import src.auth as Authentication
 import src.proxy as proxy
 from src.search import search_related_stories
 from src.accesstoken import generate_jwt_token
-from src.middleware import middleware_story_acl, middleware_content_type
+from src.middleware import middleware_story_acl
 import src.config as config
 
 import os
