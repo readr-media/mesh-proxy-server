@@ -128,7 +128,7 @@ async def gql_test(request: Request):
   gql_endpoint = os.environ['MESH_GQL_ENDPOINT']
   gql_header = dict(request.headers)
   gql_payload = await request.body()
-  response, error_msg = proxy.gql_proxy_raw(gql_endpoint, gql_payload, gql_header)
+  response, error_msg = await proxy.gql_proxy_raw(gql_endpoint, gql_payload, gql_header)
   if error_msg:
     return JSONResponse(
       status_code=status.HTTP_400_BAD_REQUEST,

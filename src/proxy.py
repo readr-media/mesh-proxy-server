@@ -8,6 +8,7 @@ from src.tool import key_builder
 from src.cache import get_cache, set_cache, mget_cache
 from src.request_body import LatestStories
 from datetime import datetime
+import httpx
 
 def pubsub_proxy(payload, action_type: str='user_action'):
     if action_type == 'payment':
@@ -36,14 +37,16 @@ def gql_proxy_without_cache(gql_endpoint, json_payload: dict, headers: dict=None
       error_message = e
     return json_data, error_message
 
-def gql_proxy_raw(gql_endpoint, data, headers):
+async def gql_proxy_raw(gql_endpoint: str, data: bytes, headers: dict):
     json_data, error_message = None, None
     try:
-      response = requests.post(gql_endpoint, data=data, headers=headers)
-      json_data = response.json()
+        timeout = httpx.Timeout(30.0)
+        async with httpx.AsyncClient(timeout=timeout) as client:
+            response = await client.post(gql_endpoint, content=data, headers=headers)
+            json_data = response.json()
     except Exception as e:
-      print("GQL query error:", e)
-      error_message = e
+        print("GQL query error:", e)
+        error_message = str(e)
     return json_data, error_message
 
 
