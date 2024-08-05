@@ -8,7 +8,7 @@ from src.tool import key_builder
 from src.cache import get_cache, set_cache, mget_cache
 from src.request_body import LatestStories
 from datetime import datetime
-import httpx
+from fastapi import Request
 
 def pubsub_proxy(payload, action_type: str='user_action'):
     if action_type == 'payment':
@@ -37,16 +37,21 @@ def gql_proxy_without_cache(gql_endpoint, json_payload: dict, headers: dict=None
       error_message = e
     return json_data, error_message
 
-async def gql_proxy_raw(gql_endpoint: str, data: bytes, headers: dict):
+async def gql_proxy_raw(gql_endpoint: str, request: Request, acl_headers: dict):
+    content_type = request.headers.get('Content-Type', '')
     json_data, error_message = None, None
     try:
-        timeout = httpx.Timeout(config.PROXY_TIMEOUT_SEC)
-        async with httpx.AsyncClient(timeout=timeout) as client:
-            response = await client.post(gql_endpoint, content=data, headers=headers)
-            json_data = response.json()
+      if 'multipart/form-data' in content_type:
+        form = await request.form()
+        data = {key: value for key, value in form.items()}
+        response = requests.post(gql_endpoint, files=data, headers=acl_headers)
+      else:
+        data = await request.json()
+        response = requests.post(gql_endpoint, json=data, headers=acl_headers)
+      json_data = response.json()
     except Exception as e:
-        print("GQL query error:", e)
-        error_message = str(e)
+      print("GQL query error:", e)
+      error_message = e
     return json_data, error_message
 
 

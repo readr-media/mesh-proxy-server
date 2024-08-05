@@ -126,14 +126,7 @@ async def gql_test(request: Request):
   GQL test proxy
   '''
   gql_endpoint = os.environ['MESH_GQL_ENDPOINT']
-  content_header, gql_payload = middleware_content_type(request)
-  if gql_payload==None:
-    return JSONResponse(
-      status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
-      content={"message": "Unsupported Media Type"}
-    )
-
-  response, error_msg = await proxy.gql_proxy_raw(gql_endpoint, gql_payload, content_header)
+  response, error_msg = await proxy.gql_proxy_raw(gql_endpoint, request, None)
   if error_msg:
     return JSONResponse(
       status_code=status.HTTP_400_BAD_REQUEST,
