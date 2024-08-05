@@ -106,7 +106,7 @@ async def gql(request: Request):
   '''
   gql_endpoint = os.environ['MESH_GQL_ENDPOINT']
   gql_payload = await request.json()
-  gql_header = request.headers
+  gql_header = dict(request.headers)
   acl_header, error_msg = middleware_story_acl(request)
   if error_msg:
     return JSONResponse(
