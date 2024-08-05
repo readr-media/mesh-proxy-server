@@ -123,26 +123,12 @@ async def gql(request: Request):
 @app.post('/gql/test')
 async def gql_test(request: Request):
   '''
-  Forward gql request by http method without cache.
+  GQL test proxy
   '''
   gql_endpoint = os.environ['MESH_GQL_ENDPOINT']
-  gql_payload = await request.json()
-
-  ### parse content type
-  content_type = request.headers.get("Content-Type", "application/json")
-  gql_header = {"Content-Type": content_type}
-
-  ### parse story acl
-  acl_header, error_msg = middleware_story_acl(request)
-  if error_msg:
-    return JSONResponse(
-      status_code=status.HTTP_401_UNAUTHORIZED,
-      content={"message": f"{error_msg}"}
-    )
-  
-  ### send gql query
-  print("merge header: ", gql_header|acl_header)
-  response, error_msg = proxy.gql_proxy_without_cache(gql_endpoint, gql_payload, gql_header|acl_header)
+  gql_header = dict(request.headers)
+  gql_payload = await request.body()
+  response, error_msg = proxy.gql_proxy_raw(gql_endpoint, gql_payload, gql_header)
   if error_msg:
     return JSONResponse(
       status_code=status.HTTP_400_BAD_REQUEST,

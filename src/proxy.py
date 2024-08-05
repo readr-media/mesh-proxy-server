@@ -36,6 +36,17 @@ def gql_proxy_without_cache(gql_endpoint, json_payload: dict, headers: dict=None
       error_message = e
     return json_data, error_message
 
+def gql_proxy_raw(gql_endpoint, data, headers):
+    json_data, error_message = None, None
+    try:
+      response = requests.post(gql_endpoint, data=data, headers=headers)
+      json_data = response.json()
+    except Exception as e:
+      print("GQL query error:", e)
+      error_message = e
+    return json_data, error_message
+
+
 async def gql_proxy_with_cache(gql_endpoint: str, gql_payload: dict, ttl: int=config.DEFAULT_GQL_TTL):
     ### build cache key
     prefix = FastAPICache.get_prefix()
