@@ -13,6 +13,6 @@ requests_toolbelt==1.0.0
 firebase-admin==6.5.0
 pyjwt==2.8.0
 python-multipart==0.0.9
-starlette==3.9.18
+starlette
 pytz
 meilisearch
