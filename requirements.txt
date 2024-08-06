@@ -12,5 +12,6 @@ redis==4.6.0
 requests_toolbelt==1.0.0
 firebase-admin==6.5.0
 pyjwt==2.8.0
+python-multipart==0.0.9
 pytz
 meilisearch
