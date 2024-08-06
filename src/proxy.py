@@ -8,7 +8,8 @@ from src.tool import key_builder
 from src.cache import get_cache, set_cache, mget_cache
 from src.request_body import LatestStories
 from datetime import datetime
-from fastapi import Request, UploadFile
+from fastapi import Request
+from starlette.datastructures import UploadFile
 
 def pubsub_proxy(payload, action_type: str='user_action'):
     if action_type == 'payment':
@@ -47,7 +48,7 @@ async def gql_proxy_raw(gql_endpoint: str, request: Request, acl_headers: dict):
         for key, value in form.items():
           if isinstance(value, UploadFile):
             print('Find a file')
-            files[key] = (value.filename, await value.read(value.size), value.content_type)
+            files[key] = (value.filename, await value.read(), value.content_type)
           else:
             print('Not a file, type of value: ', type(value))
             files[key] = value
