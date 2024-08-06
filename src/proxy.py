@@ -44,15 +44,15 @@ async def gql_proxy_raw(gql_endpoint: str, request: Request, acl_headers: dict):
     try:
       if 'multipart/form-data' in content_type:
         form = await request.form()
-        files = {}
+        data, files = {}, {}
         for key, value in form.items():
           if isinstance(value, UploadFile):
             print("gql proxy with upload file")
             files[key] = await value.read()
           else:
-            files[key] = value
+            data[key] = value
           # files[key] = (value.filename, await value.read(value.size), value.content_type) if isinstance(value, UploadFile) else value
-        response = requests.post(gql_endpoint, files=files, headers=acl_headers)
+        response = requests.post(gql_endpoint, data=data, files=files, headers=acl_headers)
       else:
         data = await request.json()
         response = requests.post(gql_endpoint, json=data, headers=acl_headers)
