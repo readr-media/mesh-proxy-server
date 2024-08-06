@@ -28,16 +28,6 @@ def pubsub_proxy(payload, action_type: str='user_action'):
         response += f" Error: {e}."
     return response
 
-def gql_proxy_without_cache(gql_endpoint, json_payload: dict, headers: dict=None):
-    json_data, error_message = None, None
-    try:
-      response = requests.post(gql_endpoint, json=json_payload, headers=headers)
-      json_data = response.json()
-    except Exception as e:
-      print("GQL query error:", e)
-      error_message = e
-    return json_data, error_message
-
 async def gql_proxy_raw(gql_endpoint: str, request: Request, acl_headers: dict):
     content_type = request.headers.get('Content-Type', '')
     json_data, error_message = None, None
@@ -51,7 +41,6 @@ async def gql_proxy_raw(gql_endpoint: str, request: Request, acl_headers: dict):
             files[key] = await value.read()
           else:
             data[key] = value
-          # files[key] = (value.filename, await value.read(value.size), value.content_type) if isinstance(value, UploadFile) else value
         response = requests.post(gql_endpoint, data=data, files=files, headers=acl_headers)
       else:
         data = await request.json()
@@ -62,6 +51,15 @@ async def gql_proxy_raw(gql_endpoint: str, request: Request, acl_headers: dict):
       error_message = e
     return json_data, error_message
 
+def gql_proxy_without_cache(gql_endpoint, json_payload: dict, headers: dict=None):
+    json_data, error_message = None, None
+    try:
+      response = requests.post(gql_endpoint, json=json_payload, headers=headers)
+      json_data = response.json()
+    except Exception as e:
+      print("GQL query error:", e)
+      error_message = e
+    return json_data, error_message
 
 async def gql_proxy_with_cache(gql_endpoint: str, gql_payload: dict, ttl: int=config.DEFAULT_GQL_TTL):
     ### build cache key

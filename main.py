@@ -126,7 +126,13 @@ async def gql_test(request: Request):
   GQL test proxy
   '''
   gql_endpoint = os.environ['MESH_GQL_ENDPOINT']
-  response, error_msg = await proxy.gql_proxy_raw(gql_endpoint, request, None)
+  acl_header, error_msg = middleware_story_acl(request)
+  if error_msg:
+    return JSONResponse(
+      status_code=status.HTTP_401_UNAUTHORIZED,
+      content={"message": f"{error_msg}"}
+    )
+  response, error_msg = await proxy.gql_proxy_raw(gql_endpoint, request, acl_header)
   if error_msg:
     return JSONResponse(
       status_code=status.HTTP_400_BAD_REQUEST,
