@@ -45,7 +45,13 @@ async def gql_proxy_raw(gql_endpoint: str, request: Request, acl_headers: dict):
         form = await request.form()
         files = {}
         for key, value in form.items():
-          files[key] = (value.filename, await value.read(value.size), value.content_type) if isinstance(value, UploadFile) else value
+          if isinstance(value, UploadFile):
+            print('Find a file')
+            files[key] = (value.filename, await value.read(value.size), value.content_type)
+          else:
+            print('Not a file, type of value: ', type(value))
+            files[key] = value
+          # files[key] = (value.filename, await value.read(value.size), value.content_type) if isinstance(value, UploadFile) else value
         print(files)
         response = requests.post(gql_endpoint, files=files, headers=acl_headers)
       else:
