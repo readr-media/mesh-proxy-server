@@ -8,7 +8,7 @@ from src.tool import key_builder
 from src.cache import get_cache, set_cache, mget_cache
 from src.request_body import LatestStories
 from datetime import datetime
-from fastapi import Request
+from fastapi import Request, UploadFile
 
 def pubsub_proxy(payload, action_type: str='user_action'):
     if action_type == 'payment':
@@ -43,8 +43,9 @@ async def gql_proxy_raw(gql_endpoint: str, request: Request, acl_headers: dict):
     try:
       if 'multipart/form-data' in content_type:
         form = await request.form()
-        data = {key: value for key, value in form.items()}
-        response = requests.post(gql_endpoint, files=data, headers=acl_headers)
+        files = {key: (value.filename, await value.read(), value.content_type) for key, value in form.items() if isinstance(value, UploadFile)}
+        data = {key: value for key, value in form.items() if not isinstance(value, UploadFile)}
+        response = requests.post(gql_endpoint, files=files, data=data, headers=acl_headers)
       else:
         data = await request.json()
         response = requests.post(gql_endpoint, json=data, headers=acl_headers)
