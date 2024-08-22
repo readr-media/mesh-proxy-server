@@ -15,7 +15,7 @@ def middleware_story_acl(request: Request):
         If jwt_token is valid, we dispatch the transactions into the ACL of gql forward header. 
     '''
     acl_header, error_msg = {}, None
-    unix_current = int(datetime.now(pytz.timezone('Asis/Taipei')).timestamp())
+    unix_current = int(datetime.now(pytz.timezone('Asia/Taipei')).timestamp())
     
     ### check the existence of Authroization header, which is jwt_token
     jwt_token = request.headers.get("Authorization", None)
@@ -41,7 +41,7 @@ def middleware_story_acl(request: Request):
                 media_id, media_expireDate = media
                 if media_expireDate < unix_current:
                     continue
-                mediaArr_filtered.append(media_id)
+                mediaArr_filtered.append(mediaArr_filtered)
             mediaArr_str = ','.join(mediaArr)
             # filter out expired story
             storyArr = payload.get('story', [])
@@ -50,7 +50,7 @@ def middleware_story_acl(request: Request):
                 story_id, story_expireDate = story
                 if story_expireDate < unix_current:
                     continue
-                storyArr_filtered.append(story_id)
+                storyArr_filtered.append(storyArr_filtered)
             storyArr_str = ','.join(storyArr)
             # wrap acl header
             acl_header = {
