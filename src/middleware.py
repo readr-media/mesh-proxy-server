@@ -3,8 +3,6 @@
     Built-in middleware in Fastapi can only apply to all the routes in an app.
     As a result, instead using built-in middleware, we develop middlewares by ourselves.
 '''
-from src.accesstoken import verify_jwt_token
-import json
 from fastapi import Request
 import jwt
 import os
