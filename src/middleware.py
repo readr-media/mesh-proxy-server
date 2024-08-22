@@ -6,6 +6,8 @@
 from fastapi import Request
 import jwt
 import os
+from datetime import datetime 
+import pytz
 
 def middleware_story_acl(request: Request):
     '''
@@ -13,6 +15,7 @@ def middleware_story_acl(request: Request):
         If jwt_token is valid, we dispatch the transactions into the ACL of gql forward header. 
     '''
     acl_header, error_msg = {}, None
+    unix_current = int(datetime.now(pytz.timezone('Asis/Taipei')).timestamp())
     
     ### check the existence of Authroization header, which is jwt_token
     jwt_token = request.headers.get("Authorization", None)
@@ -23,31 +26,33 @@ def middleware_story_acl(request: Request):
         ### check the content in the jwt_token
         # jwt.decode will return error code automatically if there is any invalid data in jwt_token
         payload = jwt.decode(jwt_token, os.environ['JWT_SECRET'], algorithms='HS256')
+        scope = payload['scope']
         
-        ### unwrap transactions from jwt_token['claim'] and wrap them into acl_header
-        txs = payload.get('txs', []) # txs = transacions
-        unlock_all_txs, unlock_media_txs, unlock_single_txs = [], [], []
-        # categorize all the transactions
-        for tx in txs:
-            policy_type = tx.get('policy',{}).get('type', '')
-            unlockSingle = tx.get('policy', {}).get('unlockSingle', False)
-            if policy_type == 'unlock_all_publishers':
-                unlock_all_txs.append(tx)
-            if policy_type == 'unlock_one_publisher':
-                if unlockSingle==False:
-                    unlock_media_txs.append(tx)
-                else:
-                    unlock_single_txs.append(tx)
         # wrap acl header
-        if len(unlock_all_txs)>0:
+        if scope == 'all':
             acl_header = {
                 "x-access-token-scope": "mesh:member-stories:all"
             }
         else:
-            mediaArr = [tx.get('policy', {}).get('publisher', {}).get('id') for tx in unlock_media_txs]
+            # filter out expired media
+            mediaArr = payload.get('media', [])
+            mediaArr_filtered = []
+            for media in mediaArr:
+                media_id, media_expireDate = media
+                if media_expireDate < unix_current:
+                    continue
+                mediaArr_filtered.append(media_id)
             mediaArr_str = ','.join(mediaArr)
-            storyArr = [tx.get('unlockStory',{}).get('id') for tx in unlock_single_txs]
+            # filter out expired story
+            storyArr = payload.get('story', [])
+            storyArr_filtered = []
+            for story in storyArr:
+                story_id, story_expireDate = story
+                if story_expireDate < unix_current:
+                    continue
+                storyArr_filtered.append(story_id)
             storyArr_str = ','.join(storyArr)
+            # wrap acl header
             acl_header = {
                 "x-access-token-scope": "mesh:member-stories:media",
                 "x-access-token-media": mediaArr_str,

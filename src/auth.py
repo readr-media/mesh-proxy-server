@@ -50,16 +50,40 @@ def generate_jwt_token(uid):
         print("generate_jwt_token error: ", error_message)
         return jwt_token
     transactions = response['transactions']
+    
     ### format expireDate to unix timestamp
+    unix_current = int(datetime.now(pytz.timezone('Asis/Taipei')).timestamp())
+    unlock_all_txs, unlock_media_txs, unlock_single_txs = [], [], []
     for tx in transactions:
-        expireDate = tx['expireDate']
-        unix_expireDate = int(datetime.strptime(expireDate, '%Y-%m-%dT%H:%M:%S.%fZ').timestamp())
+        ### filter expire transactions
+        unix_expireDate = int(datetime.strptime(tx['expireDate'], '%Y-%m-%dT%H:%M:%S.%fZ').timestamp())
+        if unix_expireDate < unix_current:
+            continue
+        ### categorize txs
         tx['expireDate'] = unix_expireDate
+        policy_type = tx.get('policy',{}).get('type', '')
+        unlockSingle = tx.get('policy', {}).get('unlockSingle', False)
+        if policy_type == 'unlock_all_publishers':
+            unlock_all_txs.append(tx)
+        if policy_type == 'unlock_one_publisher':
+            if unlockSingle==False:
+                unlock_media_txs.append(tx)
+            else:
+                unlock_single_txs.append(tx)
+
+    ### arrays of unlock information
+    mediaArr = [[tx.get('policy', {}).get('publisher', {}).get('id'), tx['expireDate']] for tx in unlock_media_txs]
+    storyArr = [[tx.get('unlockStory',{}).get('id'), tx['expireDate']] for tx in unlock_single_txs]
+        
     claim = {
         "uid": uid,
         "iat": int(datetime.now(tz=timezone.utc).timestamp()), # iat=issued at, claim identifies the time at which the JWT was issued
         "exp": int((datetime.now(tz=timezone.utc) + timedelta(hours=jwt_expire_hours)).timestamp()), # expiration time
-        "txs": transactions
+        "scope": "all" if len(unlock_all_txs)>0 else "media"
     }
+    if claim["scope"]=="media":
+        claim["media"] = mediaArr
+        claim["story"] = storyArr
+    
     jwt_token = jwt.encode(claim, os.environ['JWT_SECRET'], algorithm='HS256')
     return jwt_token
