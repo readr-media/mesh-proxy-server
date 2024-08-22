@@ -3,7 +3,7 @@ from firebase_admin import auth
 
 from src.gql import gql_query, gql_transactions
 from src.tool import save_keyfile_from_url
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 import jwt
 import os
@@ -57,8 +57,8 @@ def generate_jwt_token(uid):
         tx['expireDate'] = unix_expireDate
     claim = {
         "uid": uid,
-        "iat": int(datetime.now(pytz.timezone('Asia/Taipei')).timestamp()), # iat=issued at, claim identifies the time at which the JWT was issued
-        "exp": int((datetime.now(pytz.timezone('Asia/Taipei')) + timedelta(hours=jwt_expire_hours)).timestamp()), # expiration time
+        "iat": int(datetime.now(tz=timezone.utc).timestamp()), # iat=issued at, claim identifies the time at which the JWT was issued
+        "exp": int((datetime.now(tz=timezone.utc) + timedelta(hours=jwt_expire_hours)).timestamp()), # expiration time
         "txs": transactions
     }
     jwt_token = jwt.encode(claim, os.environ['JWT_SECRET'], algorithm='HS256')
