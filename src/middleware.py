@@ -6,6 +6,8 @@
 from src.accesstoken import verify_jwt_token
 import json
 from fastapi import Request
+import jwt
+import os
 
 def middleware_story_acl(request: Request):
     '''
@@ -20,16 +22,12 @@ def middleware_story_acl(request: Request):
         return acl_header, error_msg
     
     try:
-        ### if jwt_token is invalid, this line will cause exception
-        jwt_token = json.loads(jwt_token)
         ### check the content in the jwt_token
-        result = verify_jwt_token(jwt_token)
-        if result==False:
-            error_msg = "Invalid jwt token"
-            return acl_header, error_msg
+        # jwt.decode will return error code automatically if there is any invalid data in jwt_token
+        payload = jwt.decode(jwt_token, os.environ['JWT_SECRET'], algorithms='HS256')
         
         ### unwrap transactions from jwt_token['claim'] and wrap them into acl_header
-        txs = jwt_token.get('claim', {}).get('txs', []) # txs = transacions
+        txs = payload.get('txs', []) # txs = transacions
         unlock_all_txs, unlock_media_txs, unlock_single_txs = [], [], []
         # categorize all the transactions
         for tx in txs:

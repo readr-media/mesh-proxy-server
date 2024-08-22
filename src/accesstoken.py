@@ -15,10 +15,10 @@ def generate_jwt_token(uid):
     gql_transactions_string = gql_transactions.format(FIREBASE_ID=uid)
     
     response, error_message = gql_query(gql_endpoint, gql_transactions_string)
-    signature = None
+    jwt_token = None
     if error_message:
         print("generate_jwt_token error: ", error_message)
-        return signature
+        return jwt_token
     transactions = response['transactions']
     ### format expireDate to unix timestamp
     for tx in transactions:
@@ -31,11 +31,7 @@ def generate_jwt_token(uid):
         "exp": int((datetime.now(pytz.timezone('Asia/Taipei')) + timedelta(hours=jwt_expire_hours)).timestamp()), # expiration time
         "txs": transactions
     }
-    signature = jwt.encode(claim, os.environ['JWT_SECRET'], algorithm='HS256')
-    jwt_token = {
-        "claim": claim, # claim is the place to put messages
-        "signature": signature # signature is the claim after signing by JWT_SECRET
-    }
+    jwt_token = jwt.encode(claim, os.environ['JWT_SECRET'], algorithm='HS256')
     return jwt_token
 
 def verify_jwt_token(jwt_token):
