@@ -52,7 +52,7 @@ def generate_jwt_token(uid):
     transactions = response['transactions']
     
     ### format expireDate to unix timestamp
-    unix_current = int(datetime.now(pytz.timezone('Asis/Taipei')).timestamp())
+    unix_current = int(datetime.now(pytz.timezone('Asia/Taipei')).timestamp())
     unlock_all_txs, unlock_media_txs, unlock_single_txs = [], [], []
     for tx in transactions:
         ### filter expire transactions
