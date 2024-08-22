@@ -1,4 +1,4 @@
-from fastapi import FastAPI, status, Request, HTTPException
+from fastapi import FastAPI, status, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
@@ -11,7 +11,6 @@ from src.request_body import LatestStories, GqlQuery
 import src.auth as Authentication
 import src.proxy as proxy
 from src.search import search_related_stories
-from src.accesstoken import generate_jwt_token
 from src.middleware import middleware_story_acl
 import src.config as config
 
@@ -30,19 +29,6 @@ app.add_middleware(
     allow_methods = methods,
     allow_headers = headers
 )
-
-### Middlewares
-# @app.middleware("http")
-# async def middleware_verify_token(request: Request, call_next):
-#     token = (request.headers.get("token", None) or request.cookies.get('token', None))
-#     print('cookies info: ', request.cookies)
-    # if not token:
-    #     raise HTTPException(status_code=400, detail="Token header is missing")
-    # uid, error_message = Authentication.verifyIdToken(token)
-    # response = await call_next(request)
-    # response.headers["Uid"] = str(uid)
-    # response.headers["Verify-Message"] = str(error_message)
-    # return response
 
 ### API Design
 @app.get('/')
@@ -64,7 +50,7 @@ async def accesstoken(request: Request):
       status_code=status.HTTP_401_UNAUTHORIZED,
       content={"message": f"verifyIdToken failed. {error_message}"}
     )
-  jwt_token = generate_jwt_token(uid)
+  jwt_token = Authentication.generate_jwt_token(uid)
   if jwt_token==None:
     return JSONResponse(
       status_code=status.HTTP_401_UNAUTHORIZED,
