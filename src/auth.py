@@ -56,7 +56,10 @@ def generate_jwt_token(uid):
     unlock_all_txs, unlock_media_txs, unlock_single_txs = [], [], []
     for tx in transactions:
         ### filter expire transactions
-        unix_expireDate = int(datetime.strptime(tx['expireDate'], '%Y-%m-%dT%H:%M:%S.%fZ').timestamp())
+        expireDate = tx.get('expireDate', None)
+        if expireDate==None:
+            continue
+        unix_expireDate = int(datetime.strptime(expireDate, '%Y-%m-%dT%H:%M:%S.%fZ').timestamp())
         if unix_expireDate < unix_current:
             continue
         ### categorize txs
