@@ -8,6 +8,7 @@ import jwt
 import os
 from datetime import datetime 
 import pytz
+from src.tool import extract_bearer_token
 
 def middleware_story_acl(request: Request):
     '''
@@ -18,16 +19,15 @@ def middleware_story_acl(request: Request):
     unix_current = int(datetime.now(pytz.timezone('Asia/Taipei')).timestamp())
     
     ### check the existence of Authroization header, which is jwt_token
-    jwt_token = request.headers.get("Authorization", None)
+    bearer_token = request.headers.get("Authorization", None)
+    jwt_token = extract_bearer_token(bearer_token)
     if jwt_token==None:
         return acl_header, error_msg
-    
-    print("jwt_token: ", jwt_token)
+
     try:
         ### check the content in the jwt_token
         # jwt.decode will return error code automatically if there is any invalid data in jwt_token
         payload = jwt.decode(jwt_token, os.environ['JWT_SECRET'], algorithms='HS256')
-        print("payload: ", payload)
         scope = payload['scope']
         
         # wrap acl header

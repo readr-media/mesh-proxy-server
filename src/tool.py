@@ -2,6 +2,7 @@ import json
 import os
 import requests
 import hashlib
+import re
 
 def save_file(dest_filename, data):
     if data:
@@ -23,3 +24,13 @@ def key_builder(
         f"{request}".encode()
     ).hexdigest()
     return f"{prefix}:{cache_key}"
+
+# Extreact jwt token from "Bearer <jwt_token>"
+def extract_bearer_token(bearer_token):
+    if bearer_token==None:
+        return None
+    pattern = r'Bearer\s+(\S+)' 
+    match = re.search(pattern, bearer_token)
+    if match:
+        return match.group(1)
+    return None

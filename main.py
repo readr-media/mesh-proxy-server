@@ -12,6 +12,7 @@ import src.auth as Authentication
 import src.proxy as proxy
 from src.search import search_related_stories
 from src.middleware import middleware_story_acl
+from src.tool import extract_bearer_token
 import src.config as config
 
 import os
@@ -37,14 +38,15 @@ async def health_checking():
 
 @app.post('/accesstoken')
 async def accesstoken(request: Request):
-  token = (request.headers.get("Authorization", None) or request.cookies.get('Authorization', None))
-  if not token:
+  bearer_token = (request.headers.get("Authorization", None) or request.cookies.get('Authorization', None))
+  jwt_token = extract_bearer_token(bearer_token)
+  if not jwt_token:
     return JSONResponse(
       status_code=status.HTTP_401_UNAUTHORIZED,
-      content={"message": "Token is missing."}
+      content={"message": "Token is missing or wrong."}
     )
   
-  uid, error_message = Authentication.verifyIdToken(token)
+  uid, error_message = Authentication.verifyIdToken(jwt_token)
   if error_message:
     return JSONResponse(
       status_code=status.HTTP_401_UNAUTHORIZED,
