@@ -22,10 +22,12 @@ def middleware_story_acl(request: Request):
     if jwt_token==None:
         return acl_header, error_msg
     
+    print("jwt_token: ", jwt_token)
     try:
         ### check the content in the jwt_token
         # jwt.decode will return error code automatically if there is any invalid data in jwt_token
         payload = jwt.decode(jwt_token, os.environ['JWT_SECRET'], algorithms='HS256')
+        print("payload: ", payload)
         scope = payload['scope']
         
         # wrap acl header
