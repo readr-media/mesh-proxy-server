@@ -36,22 +36,22 @@ def middleware_story_acl(request: Request):
         else:
             # filter out expired media
             mediaArr = payload.get('media', [])
-            mediaArr_filtered = []
+            mediaArr_filtered = set()
             for media in mediaArr:
                 media_id, media_expireDate = media
                 if media_expireDate < unix_current:
                     continue
-                mediaArr_filtered.append(media_id)
-            mediaArr_str = ','.join(mediaArr_filtered)
+                mediaArr_filtered.add(media_id)
+            mediaArr_str = ','.join(list(mediaArr_filtered))
             # filter out expired story
             storyArr = payload.get('story', [])
-            storyArr_filtered = []
+            storyArr_filtered = set()
             for story in storyArr:
                 story_id, story_expireDate = story
                 if story_expireDate < unix_current:
                     continue
-                storyArr_filtered.append(story_id)
-            storyArr_str = ','.join(storyArr_filtered)
+                storyArr_filtered.add(story_id)
+            storyArr_str = ','.join(list(storyArr_filtered))
             # wrap acl header
             acl_header = {
                 "x-access-token-scope": "mesh:member-stories:media",
