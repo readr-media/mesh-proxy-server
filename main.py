@@ -13,6 +13,7 @@ import src.proxy as proxy
 from src.search import search_related_stories
 from src.middleware import middleware_story_acl
 from src.tool import extract_bearer_token
+from src.socialpage import getSocialPage
 import src.config as config
 
 import os
@@ -134,9 +135,21 @@ async def latest_stories(latestStories: LatestStories):
 @app.get('/search/{search_text}')
 @cache(expire=config.SEARCH_EXPIRE_TIME)
 async def search(search_text: str):
+  '''
+  Given search text, return related stories
+  '''
   print("search_text is: ", search_text)
   related_stories = search_related_stories(search_text)
   return related_stories
+
+@app.get('/socialpage/{member_id}')
+@cache(expire=config.SOCIALPAGE_CACHE_TIME)
+async def socialpage(member_id: str):
+  '''
+  Given member_id, return social_page item
+  '''
+  mongo_url = os.environ['MONGO_URL']
+  return getSocialPage(mongo_url, member_id)
 
 @app.on_event("startup")
 async def startup():
