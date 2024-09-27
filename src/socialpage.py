@@ -1,6 +1,7 @@
 import pymongo
 import os
 import src.config as config
+import random
 
 def connect_db(mongo_url: str, env: str='dev'):
     client = pymongo.MongoClient(mongo_url)
@@ -14,7 +15,8 @@ def connect_db(mongo_url: str, env: str='dev'):
     return db
 
 def getSocialPage(mongo_url: str, member_id: str):
-    social_member_page = []
+    social_stories = []
+    social_members = []
     try:
         # connect to db
         db = connect_db(mongo_url, os.environ.get('ENV', 'dev'))
@@ -30,6 +32,34 @@ def getSocialPage(mongo_url: str, member_id: str):
                 }
             })
         )
+        
+        # recommend following
+        recommended_ids = set()
+        for info in followings_info:
+            recommended_ids = recommended_ids.union(set(info['following']))
+        recommended_ids = list(recommended_ids.difference(set(followings)))
+        random.shuffle(recommended_ids)
+        recommended_members_info = list(col_members.find(
+            {
+                "_id": {
+                    "$in": recommended_ids[:config.SOCIALPAGE_RECOMMEND_MEMBERS_NUM]
+                }
+            },
+            {
+                "story_reads": 0,
+                "story_comments": 0,
+                "following": 0,
+            }
+        ))
+        for info in recommended_members_info:
+            social_members.append({
+                "id": info["_id"],
+                "followerCount": len(info.get('follower', [])),
+                "name": info['name'],
+                "nickname": info['nickname'],
+                "customId": info['customId'],
+                "avatar": info['avatar']
+            })
 
         # filter picks
         picks = []
@@ -40,8 +70,9 @@ def getSocialPage(mongo_url: str, member_id: str):
             for read in story_reads:
                 read['member'] = {
                     "id": mid,
-                    "customId": info['customId'],
                     "name": info['name'],
+                    "nickname": info['nickname'],
+                    "customId": info['customId'],
                     "avatar": info['avatar']
                 }
                 picks.append(read)
@@ -49,8 +80,9 @@ def getSocialPage(mongo_url: str, member_id: str):
                 # data of comment would have additional field "content"
                 comment['member'] = {
                     "id": mid,
-                    "customId": info['customId'],
                     "name": info['name'],
+                    "nickname": info['nickname'],
+                    "customId": info['customId'],
                     "avatar": info['avatar']
                 }
                 picks.append(comment)
@@ -84,17 +116,23 @@ def getSocialPage(mongo_url: str, member_id: str):
                 categorized_picks.append(data)
             readCount = len(story.get('reads', []))
             commentCount = len(story.get('comments', []))
-            social_member_page.append({
+            social_stories.append({
                 "id": id,
                 "url": story['url'],
                 "publisher_id": story['publisher_id'],
                 "og_title": story['og_title'],
                 "og_image": story['og_image'],
                 "og_description": story['og_description'],
+                "full_screen_ad": story['full_screen_ad'],
+                "isMember": story['isMember'],
                 "readCount": readCount,
                 "commentCount": commentCount,
                 "following_actions": categorized_picks
             })
     except Exception as e:
         print(f'Error occurred when get socialpage for member: {member_id}, reason: {str(e)}')
-    return social_member_page
+    social_page = {
+        "stories": social_stories,
+        "members": social_members
+    }
+    return social_page
