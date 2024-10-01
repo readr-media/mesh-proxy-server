@@ -2,6 +2,7 @@ import pymongo
 import os
 import src.config as config
 import random
+from src.gql import gql_query, gql_all_publishers
 
 def connect_db(mongo_url: str, env: str='dev'):
     client = pymongo.MongoClient(mongo_url)
@@ -18,6 +19,13 @@ def getSocialPage(mongo_url: str, member_id: str):
     social_stories = []
     social_members = []
     try:
+        gql_endpoint = os.environ['MESH_GQL_ENDPOINT']
+        publishers = gql_query(gql_endpoint, gql_all_publishers)
+        publishers = publishers['publishers']
+        publishers_table = {
+            publisher['id']: publisher['title'] for publisher in publishers
+        }
+        
         # connect to db
         db = connect_db(mongo_url, os.environ.get('ENV', 'dev'))
         col_members, col_stories = db.members, db.stories
@@ -119,12 +127,16 @@ def getSocialPage(mongo_url: str, member_id: str):
             social_stories.append({
                 "id": id,
                 "url": story['url'],
-                "publisher_id": story['publisher_id'],
+                "publisher": {
+                    'id': story['publisher_id'],
+                    'title': publishers_table.get(story['publisher_id'], ''),
+                },
                 "og_title": story['og_title'],
                 "og_image": story['og_image'],
                 "og_description": story['og_description'],
                 "full_screen_ad": story['full_screen_ad'],
                 "isMember": story['isMember'],
+                "published_date": story['published_date'],
                 "readCount": readCount,
                 "commentCount": commentCount,
                 "following_actions": categorized_picks
