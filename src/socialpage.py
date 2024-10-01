@@ -20,7 +20,7 @@ def getSocialPage(mongo_url: str, member_id: str):
     social_members = []
     try:
         gql_endpoint = os.environ['MESH_GQL_ENDPOINT']
-        publishers = gql_query(gql_endpoint, gql_all_publishers)
+        publishers, _ = gql_query(gql_endpoint, gql_all_publishers)
         publishers = publishers['publishers']
         publishers_table = {
             publisher['id']: publisher['title'] for publisher in publishers
