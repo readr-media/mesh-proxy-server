@@ -91,6 +91,7 @@ query Publishers{
   publishers{
     id
     title
+    customId
   }
 }
 """

@@ -23,7 +23,10 @@ def getSocialPage(mongo_url: str, member_id: str):
         publishers, _ = gql_query(gql_endpoint, gql_all_publishers)
         publishers = publishers['publishers']
         publishers_table = {
-            publisher['id']: publisher['title'] for publisher in publishers
+            publisher['id']: {
+                'title': publisher['title'],
+                'customId': publisher['customId'],
+            } for publisher in publishers
         }
         
         # connect to db
@@ -124,12 +127,14 @@ def getSocialPage(mongo_url: str, member_id: str):
                 categorized_picks.append(data)
             readCount = len(story.get('reads', []))
             commentCount = len(story.get('comments', []))
+            publisher_id = story['publisher_id']
             social_stories.append({
                 "id": id,
                 "url": story['url'],
                 "publisher": {
-                    'id': story['publisher_id'],
-                    'title': publishers_table.get(story['publisher_id'], ''),
+                    'id': publisher_id,
+                    'title': publishers_table.get(publisher_id, {}).get('title', ''),
+                    'customId': publishers_table.get(publisher_id, {}).get('customId', ''),
                 },
                 "og_title": story['og_title'],
                 "og_image": story['og_image'],
