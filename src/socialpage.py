@@ -111,6 +111,7 @@ def getSocialPage(mongo_url: str, member_id: str):
 
         # get full story content and organized all the informations
         story_list = list(col_stories.find({"_id": {"$in": story_ids}}))
+        full_story_info = {}
         for story in story_list:
             id = story['_id']
             table_pick = picks_table.get(id, None)
@@ -130,7 +131,7 @@ def getSocialPage(mongo_url: str, member_id: str):
             readCount = len(story.get('reads', []))
             commentCount = len(story.get('comments', []))
             publisher_id = story['publisher_id']
-            social_stories.append({
+            full_story_info[id] = {
                 "id": id,
                 "url": story['url'],
                 "publisher": {
@@ -147,7 +148,18 @@ def getSocialPage(mongo_url: str, member_id: str):
                 "readCount": readCount,
                 "commentCount": commentCount,
                 "following_actions": categorized_picks
-            })
+            }
+            
+            # sort story by pick timestamp
+            check_set = set()
+            for pick in sorted_picks:
+                sid = pick['sid']
+                if sid in check_set:
+                    continue
+                check_set.add(sid)
+                story = full_story_info.get(sid, None)
+                if story:
+                    social_stories.append(story)
     except Exception as e:
         print(f'Error occurred when get socialpage for member: {member_id}, reason: {str(e)}')
     social_page = {
