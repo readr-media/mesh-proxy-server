@@ -47,8 +47,17 @@ def getSocialPage(mongo_url: str, member_id: str):
         
         # recommend following
         recommended_ids = set()
+        recommend_from_table = {} # we can know recommend from whom by using this table
         for info in followings_info:
-            recommended_ids = recommended_ids.union(set(info['following']))
+            following_following = info['following']
+            recommended_ids = recommended_ids.union(set(following_following))
+            for id in following_following:
+                recommend_from_list = recommend_from_table.setdefault(id, [])
+                recommend_from_list.append({
+                    'id': info['_id'],
+                    'name': info['name'],
+                    'nickname': info['nickname']
+                })
         recommended_ids = list(recommended_ids.difference(set(followings)))
         random.shuffle(recommended_ids)
         recommended_members_info = list(col_members.find(
@@ -64,13 +73,16 @@ def getSocialPage(mongo_url: str, member_id: str):
             }
         ))
         for info in recommended_members_info:
+            recommend_id = info["_id"]
+            recommend_from_candidates = recommend_from_table[recommend_id]
             social_members.append({
-                "id": info["_id"],
+                "id": recommend_id,
                 "followerCount": len(info.get('follower', [])),
                 "name": info['name'],
                 "nickname": info['nickname'],
                 "customId": info['customId'],
-                "avatar": info['avatar']
+                "avatar": info['avatar'],
+                "from": random.choice(recommend_from_candidates)
             })
 
         # filter picks
