@@ -41,10 +41,10 @@ async def gql_proxy_raw(gql_endpoint: str, request: Request, acl_headers: dict):
             files[key] = await value.read()
           else:
             data[key] = value
-        response = requests.post(gql_endpoint, data=data, files=files, headers=acl_headers)
+        response = requests.post(gql_endpoint, data=data, files=files, headers=acl_headers, timeout=config.DEFAULT_GQL_EXEC_TIMEOUT)
       else:
         data = await request.json()
-        response = requests.post(gql_endpoint, json=data, headers=acl_headers)
+        response = requests.post(gql_endpoint, json=data, headers=acl_headers, timeout=config.DEFAULT_GQL_EXEC_TIMEOUT)
       json_data = response.json()
     except Exception as e:
       print("GQL query error:", e)
