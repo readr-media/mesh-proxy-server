@@ -3,6 +3,7 @@ import os
 import requests
 import hashlib
 import re
+from datetime import datetime
 
 def save_file(dest_filename, data):
     if data:
@@ -34,3 +35,8 @@ def extract_bearer_token(bearer_token):
     if match:
         return match.group(1)
     return None
+
+def get_isoformat_time(timestamp: int):
+    dt = datetime.fromtimestamp(timestamp)
+    iso_format = dt.strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3] + 'Z'
+    return iso_format

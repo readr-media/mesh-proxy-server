@@ -3,6 +3,7 @@ import os
 import src.config as config
 import random
 from src.gql import gql_query, gql_all_publishers
+from src.tool import get_isoformat_time
 
 def connect_db(mongo_url: str, env: str='dev'):
     client = pymongo.MongoClient(mongo_url)
@@ -120,7 +121,8 @@ def getSocialPage(mongo_url: str, member_id: str):
                 kind = 'comment' if pick.get('content', None) else 'read'
                 data = {
                     "kind": kind,
-                    "member": pick.get('member', None)
+                    "member": pick.get('member', None),
+                    "createdAt": get_isoformat_time(pick['ts'])
                 }
                 if kind == 'comment':
                     data['content'] = pick['content']
