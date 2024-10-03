@@ -162,16 +162,16 @@ def getSocialPage(mongo_url: str, member_id: str):
                 "following_actions": categorized_picks
             }
             
-            # sort story by pick timestamp
-            check_set = set()
-            for pick in sorted_picks:
-                sid = pick['sid']
-                if sid in check_set:
-                    continue
-                check_set.add(sid)
-                story = full_story_info.get(sid, None)
-                if story:
-                    social_stories.append(story)
+        # sort story by pick timestamp
+        check_set = set()
+        for pick in sorted_picks:
+            sid = pick['sid']
+            if sid in check_set:
+                continue
+            check_set.add(sid)
+            story = full_story_info.get(sid, None)
+            if story:
+                social_stories.append(story)
     except Exception as e:
         print(f'Error occurred when get socialpage for member: {member_id}, reason: {str(e)}')
     social_page = {
