@@ -3,8 +3,11 @@ import os
 import src.config as config
 import random
 from src.gql import gql_query, gql_all_publishers
-from src.tool import get_isoformat_time
+from src.tool import get_isoformat_time, key_builder
 from datetime import datetime
+from fastapi_cache import FastAPICache
+from src.cache import get_cache, set_cache
+import json
 
 def connect_db(mongo_url: str, env: str='dev'):
     client = pymongo.MongoClient(mongo_url)
@@ -18,10 +21,14 @@ def connect_db(mongo_url: str, env: str='dev'):
     return db
 
 def getSocialPage(mongo_url: str, member_id: str, index: int=None, take: int=None):
-    social_stories = []
-    social_members = []
-    print(f'Socialpage index: {index}, take: {take}')
-    try:
+    ### check cached data
+    prefix = FastAPICache.get_prefix()
+    cache_key = key_builder(f"{prefix}", f"socialpage:{member_id}")
+    _, cached_data = get_cache(cache_key)
+    if cached_data:
+        social_page = json.loads(cached_data)
+    else:
+        social_stories, social_members = [], []
         gql_endpoint = os.environ['MESH_GQL_ENDPOINT']
         publishers, _ = gql_query(gql_endpoint, gql_all_publishers)
         publishers = publishers['publishers']
@@ -174,15 +181,13 @@ def getSocialPage(mongo_url: str, member_id: str, index: int=None, take: int=Non
             story = full_story_info.get(sid, None)
             if story:
                 social_stories.append(story)
-    except Exception as e:
-        print(f'Error occurred when get socialpage for member: {member_id}, reason: {str(e)}')
+        social_page = {
+            "timestamp": int(datetime.now().timestamp()),
+            "stories": social_stories,
+            "members": social_members
+        }
+        set_cache(cache_key, json.dumps(social_page), config.SOCIALPAGE_CACHE_TIME)
     # support pagination
-    if (index>0) and (take>0):
-        social_stories = social_stories[index: index+take]
-        print(f'Socialpage after pagination, length of stories: {len(social_stories)}')
-    social_page = {
-        "timestamp": int(datetime.now().timestamp()),
-        "stories": social_stories,
-        "members": social_members
-    }
+    if (index>=0) and (take>0):
+        social_page['stories'] = social_page['stories'][index: index+take]
     return social_page

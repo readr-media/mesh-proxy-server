@@ -64,18 +64,17 @@ def gql_proxy_without_cache(gql_endpoint, json_payload: dict, headers: dict=None
 async def gql_proxy_with_cache(gql_endpoint: str, gql_payload: dict, ttl: int=config.DEFAULT_GQL_TTL):
     ### build cache key
     prefix = FastAPICache.get_prefix()
-    backend  = FastAPICache.get_backend()
     cache_key = key_builder(f"{prefix}", json.dumps(gql_payload))
     
     ### check cache
-    cached_ttl, cached = await get_cache(backend, cache_key)
+    cached_ttl, cached = await get_cache(cache_key)
     if cached:
         print(f"{cache_key} hits with ttl {cached_ttl}")
         return dict(json.loads(cached)), None
     print(f"{cache_key} missed")
     response, error_message = gql_proxy_without_cache(gql_endpoint, gql_payload)
     if response and (error_message is None):
-        await set_cache(backend, cache_key, json.dumps(response), ttl)
+        await set_cache(cache_key, json.dumps(response), ttl)
     return response, error_message
   
 async def latest_stories_proxy(latestStories: LatestStories):
