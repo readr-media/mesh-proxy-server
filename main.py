@@ -7,7 +7,7 @@ from fastapi_cache.decorator import cache
 from src.backend.redis import RedisBackendExtend
 from redis import asyncio as aioredis
 
-from src.request_body import LatestStories, GqlQuery
+from src.request_body import LatestStories, GqlQuery, SocialPage
 import src.auth as Authentication
 import src.proxy as proxy
 from src.search import search_related_stories
@@ -150,6 +150,17 @@ async def socialpage(member_id: str):
   '''
   mongo_url = os.environ['MONGO_URL']
   return getSocialPage(mongo_url, member_id)
+
+@app.post('/socialpage')
+async def socialpage(socialPage: SocialPage):
+  '''
+  Given member_id, return social_page based on index and take
+  '''
+  mongo_url = os.environ['MONGO_URL']
+  member_id = socialPage.member_id
+  index     = socialPage.index
+  take      = socialPage.take
+  return getSocialPage(mongo_url, member_id, index, take)
 
 @app.on_event("startup")
 async def startup():

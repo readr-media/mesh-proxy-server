@@ -4,6 +4,7 @@ import src.config as config
 import random
 from src.gql import gql_query, gql_all_publishers
 from src.tool import get_isoformat_time
+from datetime import datetime
 
 def connect_db(mongo_url: str, env: str='dev'):
     client = pymongo.MongoClient(mongo_url)
@@ -16,7 +17,7 @@ def connect_db(mongo_url: str, env: str='dev'):
         db = client.dev
     return db
 
-def getSocialPage(mongo_url: str, member_id: str):
+def getSocialPage(mongo_url: str, member_id: str, index: int=None, take: int=None):
     social_stories = []
     social_members = []
     try:
@@ -174,7 +175,11 @@ def getSocialPage(mongo_url: str, member_id: str):
                 social_stories.append(story)
     except Exception as e:
         print(f'Error occurred when get socialpage for member: {member_id}, reason: {str(e)}')
+    # support pagination
+    if index and take:
+        social_stories = social_stories[index: index+take]
     social_page = {
+        "timestamp": int(datetime.now().timestamp()),
         "stories": social_stories,
         "members": social_members
     }

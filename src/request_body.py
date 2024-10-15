@@ -40,3 +40,14 @@ class LatestStories(BaseModel):
     if v < 0:
       raise ValidationError('Invalid input. index and take should not be negative.')
     return v
+  
+class SocialPage(BaseModel):
+  member_id: str
+  index: int
+  take: int
+  @field_validator('index', 'take')
+  @classmethod
+  def category_rules(cls, v: int):
+    if v < 0:
+      raise ValidationError('Invalid input. index and take should not be negative.')
+    return v
