@@ -20,7 +20,7 @@ def connect_db(mongo_url: str, env: str='dev'):
         db = client.dev
     return db
 
-async def getSocialPage(mongo_url: str, member_id: str, index: int=None, take: int=None):
+async def getSocialPage(mongo_url: str, member_id: str, index: int=0, take: int=0):
     ### check cached data
     prefix = FastAPICache.get_prefix()
     cache_key = key_builder(f"{prefix}", f"socialpage:{member_id}")
