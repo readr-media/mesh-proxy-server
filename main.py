@@ -152,7 +152,7 @@ async def socialpage(member_id: str):
   return getSocialPage(mongo_url, member_id)
 
 @app.post('/socialpage')
-async def socialpage(socialPage: SocialPage):
+async def socialpage_pagination(socialPage: SocialPage):
   '''
   Given member_id, return social_page based on index and take
   '''
