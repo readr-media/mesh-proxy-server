@@ -149,7 +149,8 @@ async def socialpage(member_id: str):
   Given member_id, return social_page item
   '''
   mongo_url = os.environ['MONGO_URL']
-  return getSocialPage(mongo_url, member_id)
+  socialpage = await getSocialPage(mongo_url, member_id)
+  return socialpage
 
 @app.post('/socialpage')
 async def socialpage_pagination(socialPage: SocialPage):
@@ -160,7 +161,8 @@ async def socialpage_pagination(socialPage: SocialPage):
   member_id = socialPage.member_id
   index     = socialPage.index
   take      = socialPage.take
-  return getSocialPage(mongo_url=mongo_url, member_id=member_id, index=index, take=take)
+  socialpage = await getSocialPage(mongo_url=mongo_url, member_id=member_id, index=index, take=take)
+  return socialpage
 
 @app.on_event("startup")
 async def startup():

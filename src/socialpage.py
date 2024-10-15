@@ -20,11 +20,11 @@ def connect_db(mongo_url: str, env: str='dev'):
         db = client.dev
     return db
 
-def getSocialPage(mongo_url: str, member_id: str, index: int=None, take: int=None):
+async def getSocialPage(mongo_url: str, member_id: str, index: int=None, take: int=None):
     ### check cached data
     prefix = FastAPICache.get_prefix()
     cache_key = key_builder(f"{prefix}", f"socialpage:{member_id}")
-    _, cached_data = get_cache(cache_key)
+    _, cached_data = await get_cache(cache_key)
     if cached_data:
         social_page = json.loads(cached_data)
     else:
@@ -186,7 +186,7 @@ def getSocialPage(mongo_url: str, member_id: str, index: int=None, take: int=Non
             "stories": social_stories,
             "members": social_members
         }
-        set_cache(cache_key, json.dumps(social_page), config.SOCIALPAGE_CACHE_TIME)
+        await set_cache(cache_key, json.dumps(social_page), config.SOCIALPAGE_CACHE_TIME)
     # support pagination
     if (index>=0) and (take>0):
         social_page['stories'] = social_page['stories'][index: index+take]
