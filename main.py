@@ -160,7 +160,7 @@ async def socialpage_pagination(socialPage: SocialPage):
   member_id = socialPage.member_id
   index     = socialPage.index
   take      = socialPage.take
-  return getSocialPage(mongo_url, member_id, index, take)
+  return getSocialPage(mongo_url=mongo_url, member_id=member_id, index=index, take=take)
 
 @app.on_event("startup")
 async def startup():

@@ -20,6 +20,7 @@ def connect_db(mongo_url: str, env: str='dev'):
 def getSocialPage(mongo_url: str, member_id: str, index: int=None, take: int=None):
     social_stories = []
     social_members = []
+    print(f'Socialpage index: {index}, take: {take}')
     try:
         gql_endpoint = os.environ['MESH_GQL_ENDPOINT']
         publishers, _ = gql_query(gql_endpoint, gql_all_publishers)
@@ -176,8 +177,9 @@ def getSocialPage(mongo_url: str, member_id: str, index: int=None, take: int=Non
     except Exception as e:
         print(f'Error occurred when get socialpage for member: {member_id}, reason: {str(e)}')
     # support pagination
-    if index and take:
+    if (index>0) and (take>0):
         social_stories = social_stories[index: index+take]
+        print(f'Socialpage after pagination, length of stories: {len(social_stories)}')
     social_page = {
         "timestamp": int(datetime.now().timestamp()),
         "stories": social_stories,
