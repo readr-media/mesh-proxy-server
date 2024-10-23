@@ -39,7 +39,7 @@ def generate_codes(uid: str, num_codes: int=INVITATION_CODE_NUMS, num_chars: int
     codes, error_msg = None, None
     
     try:
-        data = gql_query(MESH_GQL_ENDPOINT, gql_member_firebaseId.format(ID=f'"{uid}"'))
+        data, _ = gql_query(MESH_GQL_ENDPOINT, gql_member_firebaseId.format(ID=f'"{uid}"'))
         if data.get('member', None)==None:
             raise Exception('Member not found')
         member_id = data['member']['id']
@@ -66,7 +66,7 @@ def generate_codes(uid: str, num_codes: int=INVITATION_CODE_NUMS, num_chars: int
                 }
             }
         }
-        existed_codes = gql_query(MESH_GQL_ENDPOINT, gql_invitation_codes, gql_mutation)
+        existed_codes, _ = gql_query(MESH_GQL_ENDPOINT, gql_invitation_codes, gql_mutation)
         existed_codes = existed_codes['invitationCodes']
         diff_codes = []
         for code_pair in existed_codes:
@@ -89,7 +89,7 @@ def generate_codes(uid: str, num_codes: int=INVITATION_CODE_NUMS, num_chars: int
         gql_mutation = {
             "data": mutation_list
         }
-        codes = gql_query(MESH_GQL_ENDPOINT, gql_create_codes, gql_mutation)
+        codes, _ = gql_query(MESH_GQL_ENDPOINT, gql_create_codes, gql_mutation)
         if codes.get('createInvitationCodes', None)==None:
             raise Exception('Failed to create invitation codes')
         codes = codes['createInvitationCodes']
