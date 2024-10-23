@@ -3,12 +3,36 @@
     Built-in middleware in Fastapi can only apply to all the routes in an app.
     As a result, instead using built-in middleware, we develop middlewares by ourselves.
 '''
-from fastapi import Request
+from fastapi import Request, status
 import jwt
 import os
 from datetime import datetime 
 import pytz
 from src.tool import extract_bearer_token
+
+def middleware_verify_token(request: Request):
+    uid, error_msg = None, None
+    
+    ### check the existence of Authroization header, which is jwt_token
+    bearer_token = request.headers.get("Authorization", None)
+    jwt_token = extract_bearer_token(bearer_token)
+    if jwt_token==None:
+        error_msg = {
+            "status_code": status.HTTP_401_UNAUTHORIZED,
+            "content": "Cannot find jwt token."
+        }
+        return uid, error_msg
+    
+    ### decode
+    try: 
+        payload = jwt.decode(jwt_token, os.environ['JWT_SECRET'], algorithms='HS256')
+        uid = payload['uid']
+    except Exception as e:
+        error_msg = {
+            "status_code": status.HTTP_401_UNAUTHORIZED,
+            "content": str(e)
+        }
+    return uid, None
 
 def middleware_story_acl(request: Request):
     '''
@@ -22,6 +46,7 @@ def middleware_story_acl(request: Request):
     bearer_token = request.headers.get("Authorization", None)
     jwt_token = extract_bearer_token(bearer_token)
     if jwt_token==None:
+        error_msg = "Cannot find jwt token."
         return acl_header, error_msg
 
     try:

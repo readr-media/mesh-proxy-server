@@ -11,9 +11,10 @@ from src.request_body import LatestStories, GqlQuery, SocialPage
 import src.auth as Authentication
 import src.proxy as proxy
 from src.search import search_related_stories
-from src.middleware import middleware_story_acl
+from src.middleware import middleware_story_acl, middleware_verify_token
 from src.tool import extract_bearer_token
 from src.socialpage import getSocialPage
+from src.invitation_code import generate_codes
 import src.config as config
 
 import os
@@ -163,6 +164,22 @@ async def socialpage_pagination(socialPage: SocialPage):
   take      = socialPage.take
   socialpage = await getSocialPage(mongo_url=mongo_url, member_id=member_id, index=index, take=take)
   return socialpage
+
+@app.post('/invitation_codes')
+async def generate_invitation_codes(request: Request):
+  uid, error_msg = middleware_verify_token(request)
+  if error_msg:
+    return JSONResponse(
+      status_code = error_msg['status_code'],
+      content = {"message": error_msg['content']}
+    )
+  codes, error_msg = generate_codes(uid)
+  if error_msg:
+    return JSONResponse(
+      status_code = error_msg['status_code'],
+      content = {"message": error_msg['content']}
+    )
+  return codes
 
 @app.on_event("startup")
 async def startup():
