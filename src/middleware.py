@@ -32,7 +32,7 @@ def middleware_verify_token(request: Request):
             "status_code": status.HTTP_401_UNAUTHORIZED,
             "content": str(e)
         }
-    return uid, None
+    return uid, error_msg
 
 def middleware_story_acl(request: Request):
     '''
