@@ -109,22 +109,6 @@ async def gql(request: Request):
     )
   return dict(response)
 
-@app.post('/gql/cache')
-async def forward(request: GqlQuery):
-  '''
-  Forward gql request by http method with cache.
-  '''
-  gql_endpoint = os.environ['MESH_GQL_ENDPOINT']
-  gql_payload = request.model_dump()
-  
-  response, error_message = await proxy.gql_proxy_with_cache(gql_endpoint, gql_payload)
-  if error_message:
-    return JSONResponse(
-      status_code=status.HTTP_400_BAD_REQUEST,
-      content={"message": f"{error_message}"}
-    )
-  return dict(response)
-
 @app.post('/latest_stories')
 async def latest_stories(latestStories: LatestStories):
   '''

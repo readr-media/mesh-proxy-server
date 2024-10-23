@@ -50,32 +50,6 @@ async def gql_proxy_raw(gql_endpoint: str, request: Request, acl_headers: dict):
       print("GQL query error:", e)
       error_message = e
     return json_data, error_message
-
-def gql_proxy_without_cache(gql_endpoint, json_payload: dict, headers: dict=None):
-    json_data, error_message = None, None
-    try:
-      response = requests.post(gql_endpoint, json=json_payload, headers=headers)
-      json_data = response.json()
-    except Exception as e:
-      print("GQL query error:", e)
-      error_message = e
-    return json_data, error_message
-
-async def gql_proxy_with_cache(gql_endpoint: str, gql_payload: dict, ttl: int=config.DEFAULT_GQL_TTL):
-    ### build cache key
-    prefix = FastAPICache.get_prefix()
-    cache_key = key_builder(f"{prefix}", json.dumps(gql_payload))
-    
-    ### check cache
-    cached_ttl, cached = await get_cache(cache_key)
-    if cached:
-        print(f"{cache_key} hits with ttl {cached_ttl}")
-        return dict(json.loads(cached)), None
-    print(f"{cache_key} missed")
-    response, error_message = gql_proxy_without_cache(gql_endpoint, gql_payload)
-    if response and (error_message is None):
-        await set_cache(cache_key, json.dumps(response), ttl)
-    return response, error_message
   
 async def latest_stories_proxy(latestStories: LatestStories):
     publishers = latestStories.publishers

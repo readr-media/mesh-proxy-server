@@ -1,21 +1,6 @@
 from gql.transport.requests import RequestsHTTPTransport
 from gql import gql, Client
-import requests
 import src.config as config
-
-def gql_query_forward(gql_endpoint, json_payload: dict):
-  '''
-    forward json_payload to gql_endpoint directly
-  '''
-  json_data, error_message = None, None
-  try:
-    response = requests.post(gql_endpoint, json=json_payload)
-    json_data = response.json()
-    print("Return data is: ", json_data)
-  except Exception as e:
-    print("GQL query error:", e)
-    error_message = e
-  return json_data, error_message
 
 def gql_query(gql_endpoint, gql_string: str=None, gql_variables: str=None, operation_name: str=None):
   '''
