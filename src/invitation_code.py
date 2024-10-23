@@ -84,7 +84,7 @@ def generate_codes(uid: str, num_codes: int=INVITATION_CODE_NUMS, num_chars: int
                     "id": member_id
                 }
             }
-        } for code in codes]
+        } for code in inserted_codes]
         
         gql_mutation = {
             "data": mutation_list
