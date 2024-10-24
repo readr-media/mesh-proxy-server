@@ -135,6 +135,11 @@ async def getSocialPage(mongo_url: str, member_id: str, index: int=0, take: int=
         full_story_info = {}
         for story in story_list:
             id = story['_id']
+            # filter out empty publisher_id
+            publisher_id = story.get('publisher_id', None)
+            if publisher_id==None:
+                continue
+            # filter out story without picks data
             table_pick = picks_table.get(id, None)
             if table_pick == None:
                 continue
@@ -151,7 +156,7 @@ async def getSocialPage(mongo_url: str, member_id: str, index: int=0, take: int=
                 categorized_picks.append(data)
             readCount = len(story.get('reads', []))
             commentCount = len(story.get('comments', []))
-            publisher_id = story['publisher_id']
+            
             full_story_info[id] = {
                 "id": id,
                 "url": story['url'],
