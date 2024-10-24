@@ -46,8 +46,7 @@ def middleware_story_acl(request: Request):
     bearer_token = request.headers.get("Authorization", None)
     jwt_token = extract_bearer_token(bearer_token)
     if jwt_token==None:
-        error_msg = "Cannot find jwt token."
-        return acl_header, error_msg
+        return acl_header, None
 
     try:
         ### check the content in the jwt_token
