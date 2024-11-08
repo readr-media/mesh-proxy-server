@@ -8,14 +8,15 @@ query Stories($where: StoryWhereInput!){
   stories(where: $where, take: 5){
     id
     title
-    og_title
     og_image
     og_description
-    url
+    published_date
+    full_screen_ad
     isMember
     source{
       id
       customId
+      title
       is_active
     }
   }
