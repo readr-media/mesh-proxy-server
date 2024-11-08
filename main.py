@@ -7,10 +7,10 @@ from fastapi_cache.decorator import cache
 from src.backend.redis import RedisBackendExtend
 from redis import asyncio as aioredis
 
-from src.request_body import LatestStories, GqlQuery, SocialPage
+from src.request_body import LatestStories, SocialPage, Search
 import src.auth as Authentication
 import src.proxy as proxy
-from src.search import search_related_stories
+from src.search import search_related_stories, search_related_stories_gql
 from src.middleware import middleware_story_acl, middleware_verify_token
 from src.tool import extract_bearer_token
 from src.socialpage import getSocialPage
@@ -126,6 +126,14 @@ async def search(search_text: str):
   print("search_text is: ", search_text)
   related_stories = search_related_stories(search_text)
   return related_stories
+
+@app.post('/search')
+async def search_post(search: Search):
+  search_text, objectives = search.text, search.objectives
+  related_data = {}
+  if "story" in objectives:
+    related_data["story"] = search_related_stories_gql(search_text)
+  return related_data
 
 @app.get('/socialpage/{member_id}')
 @cache(expire=config.SOCIALPAGE_CACHE_TIME)

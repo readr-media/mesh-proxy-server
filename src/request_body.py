@@ -51,3 +51,23 @@ class SocialPage(BaseModel):
     if v < 0:
       raise ValidationError('Invalid input. index and take should not be negative.')
     return v
+  
+class Search(BaseModel):
+  text: str
+  objectives: list[str]
+  @field_validator('text')
+  @classmethod
+  def search_rules(cls, v: str):
+    if len(v) == 0:
+      raise ValidationError('Invalid input. search_text should not be empty.')
+    return v
+  
+  @field_validator('objectives')
+  @classmethod
+  def objective_rules(cls, v: list[str]):
+    if len(v) == 0:
+      raise ValidationError('Invalid input. Objective should not be empty.')
+    for obj in v:
+      if obj not in config.VALID_SEARCH_OBJECTIVES:
+        raise ValidationError(f'Invalid input. With invalid objective.')
+    return v

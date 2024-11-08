@@ -43,4 +43,9 @@ PUBSUB_TOPIC_ACTIONS = {
     ])
 }
 
+### For searching
+VALID_SEARCH_OBJECTIVES = set([
+    "story", "collection", "member"
+])
+
 PROXY_TIMEOUT_SEC = 30
