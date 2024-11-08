@@ -28,7 +28,7 @@ def search_related_stories(search_text: str, num: int=config.MEILISEARCH_RELATED
     related_stories = []
     try:
         client = meilisearch.Client(MEILISEARCH_HOST, MEILISEARCH_APIKEY)
-        related_stories = client.index(config.MEILISEARCH_INDEX).search(search_text, {
+        related_stories = client.index(config.MEILISEARCH_STORY_INDEX).search(search_text, {
             'showRankingScore': True, # If you want to show relavant score, show this
             'limit': num
         })['hits']
@@ -47,7 +47,7 @@ def search_related_stories_gql(search_text: str, num: int=config.MEILISEARCH_REL
     try:
         # search stories by content similarity
         client = meilisearch.Client(MEILISEARCH_HOST, MEILISEARCH_APIKEY)
-        search_stories = client.index('mesh').search(search_text, {
+        search_stories = client.index(config.MEILISEARCH_STORY_INDEX).search(search_text, {
             'attributesToRetrieve': ['id', 'title'],
             'limit': num
         })['hits']
