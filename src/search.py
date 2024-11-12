@@ -23,6 +23,34 @@ query Stories($where: StoryWhereInput!){
 }
 '''
 
+gql_collection_search = '''
+query Collections($where: CollectionWhereInput!){
+  collections(where: $where){
+    id
+    title
+    status
+    creator{
+      id
+      customId
+      nickname
+    }
+    heroImage{
+      resized{
+        original
+      }
+      urlOriginal
+    }
+    readsCount: picksCount(
+      where: {
+        is_active: {
+          equals: true
+        }
+      }
+    )
+  }
+}
+'''
+
 def search_related_stories(search_text: str, num: int=config.MEILISEARCH_RELATED_STORIES_NUM):
     MEILISEARCH_HOST = os.environ['MEILISEARCH_HOST']
     MEILISEARCH_APIKEY = os.environ['MEILISEARCH_APIKEY']
@@ -80,4 +108,36 @@ def search_related_stories_gql(search_text: str, num: int=config.MEILISEARCH_REL
     except Exception as e:
         print("Search related stories error:", e)
     return related_stories
-    
+
+def search_related_collections(search_text: str, num: int=config.MEILISEARCH_RELATED_COLLECTIONS_NUM):
+    MEILISEARCH_HOST = os.environ['MEILISEARCH_HOST']
+    MEILISEARCH_APIKEY = os.environ['MEILISEARCH_APIKEY']
+    MESH_GQL_ENDPOINT = os.environ['MESH_GQL_ENDPOINT']
+    related_collections = []
+    try:
+        # search stories by content similarity
+        client = meilisearch.Client(MEILISEARCH_HOST, MEILISEARCH_APIKEY)
+        search_stories = client.index(config.MEILISEARCH_COLLECTION_INDEX).search(search_text, {
+            'limit': num
+        })['hits']
+
+        # search full information in cms
+        collection_ids = [collect['id'] for collect in search_stories]
+        collection_var = {
+            "where": {
+                "id": {
+                    "in": collection_ids
+                }   
+            }
+        }
+        data, _ = gql_query(MESH_GQL_ENDPOINT, gql_collection_search, collection_var)
+        collections = data['collections']
+
+        # filter out status not publish
+        for collect in collections:
+            status = collect['status']
+            if status=='publish':
+                related_collections.append(collect)
+    except Exception as e:
+        print("Search related stories error:", e)
+    return related_collections
