@@ -10,7 +10,7 @@ from redis import asyncio as aioredis
 from src.request_body import LatestStories, SocialPage, Search
 import src.auth as Authentication
 import src.proxy as proxy
-from src.search import search_related_stories, search_related_stories_gql, search_related_collections
+from src.search import search_related_stories, search_related_stories_gql, search_related_collections, search_related_members
 from src.middleware import middleware_story_acl, middleware_verify_token
 from src.tool import extract_bearer_token
 from src.socialpage import getSocialPage
@@ -135,6 +135,8 @@ async def search_post(search: Search):
     related_data["story"] = search_related_stories_gql(search_text)
   if "collection" in objectives:
     related_data["collection"] = search_related_collections(search_text)
+  if "member" in objectives:
+    related_data["member"] = search_related_members(search_text)
   return related_data
 
 @app.get('/socialpage/{member_id}')

@@ -51,6 +51,19 @@ query Collections($where: CollectionWhereInput!){
 }
 '''
 
+gql_member_search = '''
+query Members($where: MemberWhereInput!){
+    members(where: $where){
+        id
+        name
+        nickname
+        customId
+        avatar
+        is_active
+    }
+}
+'''
+
 def search_related_stories(search_text: str, num: int=config.MEILISEARCH_RELATED_STORIES_NUM):
     MEILISEARCH_HOST = os.environ['MEILISEARCH_HOST']
     MEILISEARCH_APIKEY = os.environ['MEILISEARCH_APIKEY']
@@ -141,3 +154,33 @@ def search_related_collections(search_text: str, num: int=config.MEILISEARCH_REL
     except Exception as e:
         print("Search related stories error:", e)
     return related_collections
+  
+def search_related_members(search_text: str, num: int=config.MEILISEARCH_RELATED_MEMBER_NUM):
+    MEILISEARCH_HOST = os.environ['MEILISEARCH_HOST']
+    MEILISEARCH_APIKEY = os.environ['MEILISEARCH_APIKEY']
+    MESH_GQL_ENDPOINT = os.environ['MESH_GQL_ENDPOINT']
+    related_members = []
+    try:
+        # search stories by content similarity
+        client = meilisearch.Client(MEILISEARCH_HOST, MEILISEARCH_APIKEY)
+        search_members = client.index(config.MEILISEARCH_MEMBER_INDEX).search(search_text, {
+            'limit': num
+        })['hits']
+
+        # search full information in cms
+        member_ids = [member['id'] for member in search_members]
+        member_var = {
+            "where": {
+                "id": {
+                    "in": member_ids
+                },
+                "is_active": {
+                    "equals": True
+                }
+            }
+        }
+        data, _ = gql_query(MESH_GQL_ENDPOINT, gql_member_search, member_var)
+        related_members = data['members']
+    except Exception as e:
+        print("Search related stories error:", e)
+    return related_members
