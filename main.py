@@ -139,16 +139,6 @@ async def search_post(search: Search):
     related_data["member"] = search_related_members(search_text)
   return related_data
 
-@app.get('/socialpage/{member_id}')
-@cache(expire=config.SOCIALPAGE_CACHE_TIME)
-async def socialpage(member_id: str):
-  '''
-  Given member_id, return social_page item
-  '''
-  mongo_url = os.environ['MONGO_URL']
-  socialpage = await getSocialPage(mongo_url, member_id)
-  return socialpage
-
 @app.post('/socialpage')
 async def socialpage_pagination(socialPage: SocialPage):
   '''
