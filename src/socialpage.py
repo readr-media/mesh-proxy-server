@@ -83,6 +83,10 @@ async def getSocialPage(mongo_url: str, member_id: str, index: int=0, take: int=
         ))
         for info in recommended_members_info:
             recommend_id = info["_id"]
+            # skip member who is not active
+            is_active = info.get('is_active', True)
+            if is_active==False:
+                continue
             recommend_from_candidates = recommend_from_table[recommend_id]
             social_members.append({
                 "id": recommend_id,
