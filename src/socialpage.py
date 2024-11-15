@@ -58,6 +58,11 @@ async def getSocialPage(mongo_url: str, member_id: str, index: int=0, take: int=
         recommended_ids = set()
         recommend_from_table = {} # we can know recommend from whom by using this table
         for info in followings_info:
+            # skip member who is not active
+            is_active = info.get('is_active', True)
+            if is_active==False:
+                print(f"Socialpage: Member {info['name']} is not active.")
+                continue
             following_following = info['following']
             recommended_ids = recommended_ids.union(set(following_following))
             for id in following_following:
