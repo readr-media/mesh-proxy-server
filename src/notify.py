@@ -3,6 +3,13 @@ import src.config as config
 from gql.transport.requests import RequestsHTTPTransport
 from src.gql import gql_query
 import os
+import copy
+
+empty_notifies_member = {
+    "id": None,
+    "lrt": 0,
+    "notifies": [],
+}
 
 gql_member_notifiers = '''
 query Members($where: MemberWhereInput!){
@@ -79,6 +86,11 @@ def get_objective_content(gql_client, objective, targetId):
 def get_notifies(db, memberId: str, index: int=0, take: int=10):
     MESH_GQL_ENDPOINT = os.environ['MESH_GQL_ENDPOINT']
     record = db.notifications.find_one(memberId)
+    if record is None:
+        empty_template = copy.deepcopy(empty_notifies_member)
+        empty_template["id"] = memberId
+        return empty_template        
+    
     lrt = record.get('lrt', 0)
     all_notifies = record.get('notifies', [])
     all_notifies = all_notifies[index: index+take]
