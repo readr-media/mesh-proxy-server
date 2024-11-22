@@ -171,7 +171,7 @@ async def generate_invitation_codes(request: Request):
 @app.post('/notifications')
 async def notifications(request: Notification):
   mongo_url = os.environ['MONGO_URL']
-  memberId = request.memberId
+  memberId = request.member_id
   index = request.index
   take = request.take
   manual = request.manual

@@ -73,7 +73,7 @@ class Search(BaseModel):
     return v
   
 class Notification(BaseModel):
-  memberId: str
+  member_id: str
   index: int = config.NOTIFY_INDEX
   take: int = config.NOTIFY_TAKE_NUM
   manual: bool = False  
