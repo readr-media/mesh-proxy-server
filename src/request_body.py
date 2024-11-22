@@ -71,3 +71,14 @@ class Search(BaseModel):
       if obj not in config.VALID_SEARCH_OBJECTIVES:
         raise ValidationError(f'Invalid input. With invalid objective.')
     return v
+  
+class Notification(BaseModel):
+  memberId: str
+  index: int = config.NOTIFY_INDEX
+  take: int = config.NOTIFY_TAKE_NUM  
+  @field_validator('index', 'take')
+  @classmethod
+  def take_rules(cls, v: int):
+    if v < 0:
+      raise ValidationError('Invalid input. index and take should not be negative.')
+    return v

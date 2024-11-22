@@ -7,15 +7,16 @@ from fastapi_cache.decorator import cache
 from src.backend.redis import RedisBackendExtend
 from redis import asyncio as aioredis
 
-from src.request_body import LatestStories, SocialPage, Search
+from src.request_body import LatestStories, SocialPage, Search, Notification
 import src.auth as Authentication
 import src.proxy as proxy
 from src.search import search_related_stories, search_related_stories_gql, search_related_collections, search_related_members
 from src.middleware import middleware_story_acl, middleware_verify_token
 from src.tool import extract_bearer_token
-from src.socialpage import getSocialPage
+from src.socialpage import getSocialPage, connect_db
 from src.invitation_code import generate_codes
 import src.config as config
+from src.notify import get_notifies
 
 import os
 import json
@@ -166,6 +167,17 @@ async def generate_invitation_codes(request: Request):
       content = {"message": error_msg['content']}
     )
   return codes
+
+@app.post('/notifications')
+async def notifications(request: Notification):
+  mongo_url = os.environ['MONGO_URL']
+  memberId = request.memberId
+  index = request.index
+  take = request.take
+  
+  db = connect_db(mongo_url, os.environ.get('ENV', 'dev'))
+  notifies = get_notifies(db=db, memberId=memberId, index=index, take=take)
+  return notifies
 
 @app.on_event("startup")
 async def startup():
