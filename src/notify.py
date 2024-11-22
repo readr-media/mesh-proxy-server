@@ -84,7 +84,7 @@ def get_objective_content(gql_client, objective, targetId):
         content = data['collection'] 
     return content
 
-def get_notifies(db, memberId: str, index: int=0, take: int=10, manual: bool=False):
+def get_notifies(db, memberId: str, index: int=0, take: int=10):
     MESH_GQL_ENDPOINT = os.environ['MESH_GQL_ENDPOINT']
     col_notify = db.notifications
     record = col_notify.find_one(memberId)
@@ -177,13 +177,6 @@ def get_notifies(db, memberId: str, index: int=0, take: int=10, manual: bool=Fal
                 "lrt": lrt,
                 "notifies": full_notifies
             }
-            
-            # Update lrt if manual==True
-            if manual==True:
-                col_notify.update_one(
-                    {"_id": memberId},
-                    {"$set": {"lrt": get_current_timestamp()}}
-                )
     except Exception as e:
         print("get_notifies error: ", e)
     return response

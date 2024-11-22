@@ -174,10 +174,9 @@ async def notifications(request: Notification):
   memberId = request.member_id
   index = request.index
   take = request.take
-  manual = request.manual
   
   db = connect_db(mongo_url, os.environ.get('ENV', 'dev'))
-  notifies = get_notifies(db=db, memberId=memberId, index=index, take=take, manual=manual)
+  notifies = get_notifies(db=db, memberId=memberId, index=index, take=take)
   return notifies
 
 @app.on_event("startup")
