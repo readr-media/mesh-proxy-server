@@ -75,7 +75,8 @@ class Search(BaseModel):
 class Notification(BaseModel):
   memberId: str
   index: int = config.NOTIFY_INDEX
-  take: int = config.NOTIFY_TAKE_NUM  
+  take: int = config.NOTIFY_TAKE_NUM
+  manual: bool = False  
   @field_validator('index', 'take')
   @classmethod
   def take_rules(cls, v: int):

@@ -40,3 +40,6 @@ def get_isoformat_time(timestamp: int):
     dt = datetime.fromtimestamp(timestamp)
     iso_format = dt.strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3] + 'Z'
     return iso_format
+
+def get_current_timestamp():
+    return int(datetime.now().timestamp())
