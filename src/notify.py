@@ -107,7 +107,7 @@ def get_notifies(db, memberId: str, index: int=0, take: int=10):
             }
         }
     }
-    members = gql_query(MESH_GQL_ENDPOINT, gql_member_notifiers, mutation)
+    members, _ = gql_query(MESH_GQL_ENDPOINT, gql_member_notifiers, mutation)
     members = members['members']
     member_table = {}
     for member in members:
