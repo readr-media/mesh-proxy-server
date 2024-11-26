@@ -105,6 +105,9 @@ def get_notifies(db, memberId: str, index: int=0, take: int=10):
         notifiersId = []
         targetObjs = {}
         for notify in all_notifies:
+            action = notify['action']
+            if action in config.PAYMENT_NOTIFIES:
+              continue
             aggregate = notify['aggregate']
             membersId = notify['from']
             if aggregate==False:
@@ -137,6 +140,10 @@ def get_notifies(db, memberId: str, index: int=0, take: int=10):
         gql_transport = RequestsHTTPTransport(url=MESH_GQL_ENDPOINT)
         gql_client = Client(transport=gql_transport, fetch_schema_from_transport=True)
         for notify in all_notifies:
+            action = notify['action']
+            if action in config.PAYMENT_NOTIFIES:
+              full_notifies.append(notify)
+              continue
             aggregate = notify["aggregate"]
             from_notifiers = notify["from"]
             objective = notify['objective']
