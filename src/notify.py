@@ -5,6 +5,12 @@ from src.gql import gql_query
 import os
 import copy
 
+empty_mongo_notifies = {
+    "_id": None,
+    "lrt": 0,
+    "notifies": [],
+}
+
 empty_notifies = {
     "id": None,
     "lrt": 0,
@@ -30,7 +36,9 @@ def get_notifies(db, memberId: str, index: int=0, take: int=10):
     empty_template = copy.deepcopy(empty_notifies)
     empty_template["id"] = memberId
     if record is None:
-        col_notify.insert_one(empty_template)
+        empty_mongo_template = copy.deepcopy(empty_mongo_notifies)
+        empty_mongo_template["_id"] = memberId
+        col_notify.insert_one(empty_mongo_template)
         return empty_template     
     
     response = empty_template
