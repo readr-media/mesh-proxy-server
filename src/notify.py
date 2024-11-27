@@ -4,7 +4,6 @@ from gql.transport.requests import RequestsHTTPTransport
 from src.gql import gql_query
 import os
 import copy
-from src.tool import get_current_timestamp
 
 empty_notifies = {
     "id": None,
