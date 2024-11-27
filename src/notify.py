@@ -1,6 +1,4 @@
-from gql import gql, Client
 import src.config as config
-from gql.transport.requests import RequestsHTTPTransport
 from src.gql import gql_query
 import os
 import copy
@@ -83,8 +81,6 @@ def get_notifies(db, memberId: str, index: int=0, take: int=10):
 
         # generate the full notifies information
         full_notifies = []
-        gql_transport = RequestsHTTPTransport(url=MESH_GQL_ENDPOINT)
-        gql_client = Client(transport=gql_transport, fetch_schema_from_transport=True)
         for notify in all_notifies:
             action = notify['action']
             if action in config.PAYMENT_NOTIFIES:
@@ -125,13 +121,12 @@ def get_notifies(db, memberId: str, index: int=0, take: int=10):
             content = notify.get('content', None)
             if content:
                 full_notify['content'] = content
-            
             full_notifies.append(full_notify)
-            response = {
-                "id": memberId,
-                "lrt": lrt,
-                "notifies": full_notifies
-            }
+        response = {
+            "id": memberId,
+            "lrt": lrt,
+            "notifies": full_notifies
+        }
     except Exception as e:
         print("get_notifies error: ", e)
     return response
