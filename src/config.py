@@ -60,7 +60,7 @@ PUBSUB_TOPIC_ACTIONS = {
 
 ### For searching
 VALID_SEARCH_OBJECTIVES = set([
-    "story", "collection", "member"
+    "story", "collection", "member", "publisher"
 ])
 
 ### For notification
