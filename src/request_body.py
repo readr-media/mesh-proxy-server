@@ -1,4 +1,4 @@
-from pydantic import BaseModel, ConfigDict, field_validator, ValueError
+from pydantic import BaseModel, ConfigDict, field_validator
 from typing import Optional
 import src.config as config 
 
