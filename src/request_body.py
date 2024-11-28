@@ -1,4 +1,4 @@
-from pydantic import BaseModel, ConfigDict, ValidationError, field_validator
+from pydantic import BaseModel, ConfigDict, field_validator, ValueError
 from typing import Optional
 import src.config as config 
 
@@ -24,21 +24,21 @@ class LatestStories(BaseModel):
   @classmethod
   def publisher_rules(cls, v: list[str]):
     if len(v)==0:
-      raise ValidationError('Invalid input. List of publishers should not be empty.')
+      raise ValueError('Invalid input. List of publishers should not be empty.')
     return v
   
   @field_validator('category')
   @classmethod
   def category_rules(cls, v: int):
     if v < 0:
-      raise ValidationError('Invalid input. category should greater than 0.')
+      raise ValueError('Invalid input. category should greater than 0.')
     return v
   
   @field_validator('index', 'take')
   @classmethod
   def category_rules(cls, v: int):
     if v < 0:
-      raise ValidationError('Invalid input. index and take should not be negative.')
+      raise ValueError('Invalid input. index and take should not be negative.')
     return v
   
 class SocialPage(BaseModel):
@@ -49,7 +49,7 @@ class SocialPage(BaseModel):
   @classmethod
   def category_rules(cls, v: int):
     if v < 0:
-      raise ValidationError('Invalid input. index and take should not be negative.')
+      raise ValueError('Invalid input. index and take should not be negative.')
     return v
   
 class Search(BaseModel):
@@ -59,17 +59,17 @@ class Search(BaseModel):
   @classmethod
   def search_rules(cls, v: str):
     if len(v) == 0:
-      raise ValidationError('Invalid input. search_text should not be empty.')
+      raise ValueError('Invalid input. search_text should not be empty.')
     return v
   
   @field_validator('objectives')
   @classmethod
   def objective_rules(cls, v: list[str]):
     if len(v) == 0:
-      raise ValidationError('Invalid input. Objective should not be empty.')
+      raise ValueError('Invalid input. Objective should not be empty.')
     for obj in v:
       if obj not in config.VALID_SEARCH_OBJECTIVES:
-        raise ValidationError(f'Invalid input. With invalid objective.')
+        raise ValueError(f'Invalid input. With invalid objective.')
     return v
   
 class Notification(BaseModel):
@@ -80,5 +80,5 @@ class Notification(BaseModel):
   @classmethod
   def take_rules(cls, v: int):
     if v < 0:
-      raise ValidationError('Invalid input. index and take should not be negative.')
+      raise ValueError('Invalid input. index and take should not be negative.')
     return v
