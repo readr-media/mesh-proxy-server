@@ -10,7 +10,7 @@ from redis import asyncio as aioredis
 from src.request_body import LatestStories, SocialPage, Search, Notification
 import src.auth as Authentication
 import src.proxy as proxy
-from src.search import search_related_stories, search_related_stories_gql, search_related_collections, search_related_members
+import src.search as search_api
 from src.middleware import middleware_story_acl, middleware_verify_token
 from src.tool import extract_bearer_token
 from src.socialpage import getSocialPage, connect_db
@@ -125,19 +125,22 @@ async def search(search_text: str):
   Given search text, return related stories
   '''
   print("search_text is: ", search_text)
-  related_stories = search_related_stories(search_text)
+  related_stories = search_api.search_related_stories(search_text)
   return related_stories
 
 @app.post('/search')
 async def search_post(search: Search):
   search_text, objectives = search.text, search.objectives
   related_data = {}
+  client = search.connect_meilisearch()
   if "story" in objectives:
-    related_data["story"] = search_related_stories_gql(search_text)
+    related_data["story"] = search_api.search_related_stories_gql(client, search_text)
   if "collection" in objectives:
-    related_data["collection"] = search_related_collections(search_text)
+    related_data["collection"] = search_api.search_related_collections(client, search_text)
   if "member" in objectives:
-    related_data["member"] = search_related_members(search_text)
+    related_data["member"] = search_api.search_related_members(client, search_text)
+  if "publisher" in objectives:
+    related_data["publisher"] = search_api.search_related_publishers(client, search_text)
   return related_data
 
 @app.post('/socialpage')

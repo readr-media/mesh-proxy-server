@@ -64,6 +64,12 @@ query Members($where: MemberWhereInput!){
 }
 '''
 
+def connect_meilisearch():
+    MEILISEARCH_HOST = os.environ['MEILISEARCH_HOST']
+    MEILISEARCH_APIKEY = os.environ['MEILISEARCH_APIKEY']
+    client = meilisearch.Client(MEILISEARCH_HOST, MEILISEARCH_APIKEY)
+    return client
+
 def search_related_stories(search_text: str, num: int=config.MEILISEARCH_RELATED_STORIES_NUM):
     MEILISEARCH_HOST = os.environ['MEILISEARCH_HOST']
     MEILISEARCH_APIKEY = os.environ['MEILISEARCH_APIKEY']
@@ -78,17 +84,14 @@ def search_related_stories(search_text: str, num: int=config.MEILISEARCH_RELATED
         print("Search related stories error:", e)
     return related_stories
 
-def search_related_stories_gql(search_text: str, num: int=config.MEILISEARCH_RELATED_STORIES_NUM):
+def search_related_stories_gql(client, search_text: str, num: int=config.MEILISEARCH_RELATED_STORIES_NUM):
     '''
     Given search text, return related stories. Full story content will be retrieved from CMS.
     '''
-    MEILISEARCH_HOST = os.environ['MEILISEARCH_HOST']
-    MEILISEARCH_APIKEY = os.environ['MEILISEARCH_APIKEY']
     MESH_GQL_ENDPOINT = os.environ['MESH_GQL_ENDPOINT']
     related_stories = []
     try:
         # search stories by content similarity
-        client = meilisearch.Client(MEILISEARCH_HOST, MEILISEARCH_APIKEY)
         search_stories = client.index(config.MEILISEARCH_STORY_INDEX).search(search_text, {
             'attributesToRetrieve': ['id', 'title'],
             'limit': num
@@ -122,14 +125,11 @@ def search_related_stories_gql(search_text: str, num: int=config.MEILISEARCH_REL
         print("Search related stories error:", e)
     return related_stories
 
-def search_related_collections(search_text: str, num: int=config.MEILISEARCH_RELATED_COLLECTIONS_NUM):
-    MEILISEARCH_HOST = os.environ['MEILISEARCH_HOST']
-    MEILISEARCH_APIKEY = os.environ['MEILISEARCH_APIKEY']
+def search_related_collections(client, search_text: str, num: int=config.MEILISEARCH_RELATED_COLLECTIONS_NUM):
     MESH_GQL_ENDPOINT = os.environ['MESH_GQL_ENDPOINT']
     related_collections = []
     try:
         # search stories by content similarity
-        client = meilisearch.Client(MEILISEARCH_HOST, MEILISEARCH_APIKEY)
         search_stories = client.index(config.MEILISEARCH_COLLECTION_INDEX).search(search_text, {
             'limit': num
         })['hits']
@@ -155,14 +155,11 @@ def search_related_collections(search_text: str, num: int=config.MEILISEARCH_REL
         print("Search related stories error:", e)
     return related_collections
   
-def search_related_members(search_text: str, num: int=config.MEILISEARCH_RELATED_MEMBER_NUM):
-    MEILISEARCH_HOST = os.environ['MEILISEARCH_HOST']
-    MEILISEARCH_APIKEY = os.environ['MEILISEARCH_APIKEY']
+def search_related_members(client, search_text: str, num: int=config.MEILISEARCH_RELATED_MEMBER_NUM):
     MESH_GQL_ENDPOINT = os.environ['MESH_GQL_ENDPOINT']
     related_members = []
     try:
         # search stories by content similarity
-        client = meilisearch.Client(MEILISEARCH_HOST, MEILISEARCH_APIKEY)
         search_members = client.index(config.MEILISEARCH_MEMBER_INDEX).search(search_text, {
             'limit': num
         })['hits']
@@ -184,3 +181,14 @@ def search_related_members(search_text: str, num: int=config.MEILISEARCH_RELATED
     except Exception as e:
         print("Search related stories error:", e)
     return related_members
+
+def search_related_publishers(client, search_text: str, num: int=config.MEILISEARCH_RELATED_PUBLISHERS_NUM):
+    related_publishers = []
+    try:
+        # search stories by content similarity
+        related_publishers = client.index(config.MEILISEARCH_PUBLISHER_INDEX).search(search_text, {
+            'limit': num
+        })['hits']
+    except Exception as e:
+        print("Search related stories error:", e)
+    return related_publishers
