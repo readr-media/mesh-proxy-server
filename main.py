@@ -132,7 +132,7 @@ async def search(search_text: str):
 async def search_post(search: Search):
   search_text, objectives = search.text, search.objectives
   related_data = {}
-  client = search.connect_meilisearch()
+  client = search_api.connect_meilisearch()
   if "story" in objectives:
     related_data["story"] = search_api.search_related_stories_gql(client, search_text)
   if "collection" in objectives:
