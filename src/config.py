@@ -64,6 +64,6 @@ VALID_SEARCH_OBJECTIVES = set([
 ])
 
 ### For notification
-PAYMENT_NOTIFIES = set(["notify_transaction", "notify_sponsorship"])
+PAYMENT_NOTIFIES = set(["notify_transaction", "notify_sponsorship", "approach_expiration"])
 
 PROXY_TIMEOUT_SEC = 30
