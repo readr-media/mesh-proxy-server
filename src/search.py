@@ -96,36 +96,45 @@ def search_related_stories_gql(client, search_text: str, num: int=config.MEILISE
     MESH_GQL_ENDPOINT = os.environ['MESH_GQL_ENDPOINT']
     related_stories = []
     try:
-        # search stories by content similarity
-        search_stories = client.index(config.MEILISEARCH_STORY_INDEX).search(search_text, {
-            'attributesToRetrieve': ['id', 'title'],
-            'limit': num
-        })['hits']
+        # check the cache in redis
+        prefix = FastAPICache.get_prefix()
+        key = key_builder(f"{prefix}:search_stories", f"search_text")
+        _, cached_data = get_cache(key)
+        if cached_data:
+            # cache hit
+            related_stories = json.loads(cached_data)
+        else:
+            # search stories by content similarity
+            search_stories = client.index(config.MEILISEARCH_STORY_INDEX).search(search_text, {
+                'attributesToRetrieve': ['id', 'title'],
+                'limit': num
+            })['hits']
 
-        # get full info from gql
-        search_ids = [story['id'] for story in search_stories]
-        search_var = {
-            "where": {
-                "id": {
-                    "in": search_ids
+            # get full info from gql
+            search_ids = [story['id'] for story in search_stories]
+            search_var = {
+                "where": {
+                    "id": {
+                        "in": search_ids
+                    }
                 }
             }
-        }
-        stories, err = gql_query(MESH_GQL_ENDPOINT, gql_story_search, search_var)
-        if err==None and isinstance(stories, dict)==True:
-            stories = stories['stories']
-        else:
-            raise(str(err))
+            stories, err = gql_query(MESH_GQL_ENDPOINT, gql_story_search, search_var)
+            if err==None and isinstance(stories, dict)==True:
+                stories = stories['stories']
+            else:
+                raise(str(err))
 
-        # post-filtering the stories
-        for story in stories:
-            source = story.get('source', None)
-            if source==None or isinstance(source, dict)==False:
-                continue
-            source_is_active = source.get('is_active', False)
-            if source_is_active==False:
-                continue
-            related_stories.append(story)
+            # post-filtering the stories
+            for story in stories:
+                source = story.get('source', None)
+                if source==None or isinstance(source, dict)==False:
+                    continue
+                source_is_active = source.get('is_active', False)
+                if source_is_active==False:
+                    continue
+                related_stories.append(story)
+            set_cache(key, json.dumps(related_stories), ttl=config.SEARCH_STORY_CACHE_TTL)
     except Exception as e:
         print("Search related stories error:", e)
     return related_stories
@@ -134,7 +143,7 @@ def search_related_collections(client, search_text: str, num: int=config.MEILISE
     MESH_GQL_ENDPOINT = os.environ['MESH_GQL_ENDPOINT']
     related_collections = []
     try:
-        # search stories by content similarity
+        # search collections by content similarity
         search_stories = client.index(config.MEILISEARCH_COLLECTION_INDEX).search(search_text, {
             'limit': num
         })['hits']
@@ -157,14 +166,14 @@ def search_related_collections(client, search_text: str, num: int=config.MEILISE
             if status=='publish':
                 related_collections.append(collect)
     except Exception as e:
-        print("Search related stories error:", e)
+        print("Search related collections error:", e)
     return related_collections
   
 def search_related_members(client, search_text: str, num: int=config.MEILISEARCH_RELATED_MEMBER_NUM):
     MESH_GQL_ENDPOINT = os.environ['MESH_GQL_ENDPOINT']
     related_members = []
     try:
-        # search stories by content similarity
+        # search members by content similarity
         search_members = client.index(config.MEILISEARCH_MEMBER_INDEX).search(search_text, {
             'limit': num
         })['hits']
@@ -184,25 +193,16 @@ def search_related_members(client, search_text: str, num: int=config.MEILISEARCH
         data, _ = gql_query(MESH_GQL_ENDPOINT, gql_member_search, member_var)
         related_members = data['members']
     except Exception as e:
-        print("Search related stories error:", e)
+        print("Search related members error:", e)
     return related_members
 
 def search_related_publishers(client, search_text: str, num: int=config.MEILISEARCH_RELATED_PUBLISHERS_NUM):
-    prefix = FastAPICache.get_prefix()
     related_publishers = []
     try:
-        # check the cache in redis
-        key = key_builder(f"{prefix}:search_publishers", f"search_text")
-        _, cached_data = get_cache(key)
-        if cached_data:
-            # cache hit
-            related_publishers = json.loads(cached_data)
-        else:
-            # cache miss: search stories by content similarity
-            related_publishers = client.index(config.MEILISEARCH_PUBLISHER_INDEX).search(search_text, {
-                'limit': num
-            })['hits']
-            set_cache(key, json.dumps(related_publishers), ttl=config.SEARCH_PUBLISHER_CACHE_TTL)
+        # search stories by content similarity
+        related_publishers = client.index(config.MEILISEARCH_PUBLISHER_INDEX).search(search_text, {
+            'limit': num
+        })['hits']
     except Exception as e:
-        print("Search related stories error:", e)
+        print("Search related publishers error:", e)
     return related_publishers

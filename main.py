@@ -118,15 +118,15 @@ async def latest_stories(latestStories: LatestStories):
   response = await proxy.latest_stories_proxy(latestStories)
   return response
 
-@app.get('/search/{search_text}')
-@cache(expire=config.SEARCH_EXPIRE_TIME)
-async def search(search_text: str):
-  '''
-  Given search text, return related stories
-  '''
-  print("search_text is: ", search_text)
-  related_stories = search_api.search_related_stories(search_text)
-  return related_stories
+# @app.get('/search/{search_text}')
+# @cache(expire=config.SEARCH_EXPIRE_TIME)
+# async def search(search_text: str):
+#   '''
+#   Given search text, return related stories
+#   '''
+#   print("search_text is: ", search_text)
+#   related_stories = search_api.search_related_stories(search_text)
+#   return related_stories
 
 @app.post('/search')
 async def search_post(search: Search):
