@@ -98,7 +98,7 @@ def search_related_stories_gql(client, search_text: str, num: int=config.MEILISE
     try:
         # check the cache in redis
         prefix = FastAPICache.get_prefix()
-        key = key_builder(f"{prefix}:search_stories", f"search_text")
+        key = key_builder(f"{prefix}:search_stories", search_text)
         _, cached_data = get_cache(key)
         if cached_data:
             # cache hit
