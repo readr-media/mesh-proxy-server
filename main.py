@@ -118,23 +118,13 @@ async def latest_stories(latestStories: LatestStories):
   response = await proxy.latest_stories_proxy(latestStories)
   return response
 
-# @app.get('/search/{search_text}')
-# @cache(expire=config.SEARCH_EXPIRE_TIME)
-# async def search(search_text: str):
-#   '''
-#   Given search text, return related stories
-#   '''
-#   print("search_text is: ", search_text)
-#   related_stories = search_api.search_related_stories(search_text)
-#   return related_stories
-
 @app.post('/search')
 async def search_post(search: Search):
   search_text, objectives = search.text, search.objectives
   related_data = {}
   client = search_api.connect_meilisearch()
   if "story" in objectives:
-    related_data["story"] = await search_api.search_related_stories_gql(client, search_text)
+    related_data["story"] = await search_api.search_related_stories(client, search_text)
   if "collection" in objectives:
     related_data["collection"] = search_api.search_related_collections(client, search_text)
   if "member" in objectives:

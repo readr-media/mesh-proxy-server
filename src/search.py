@@ -75,21 +75,7 @@ def connect_meilisearch():
     client = meilisearch.Client(MEILISEARCH_HOST, MEILISEARCH_APIKEY)
     return client
 
-def search_related_stories(search_text: str, num: int=config.MEILISEARCH_RELATED_STORIES_NUM):
-    MEILISEARCH_HOST = os.environ['MEILISEARCH_HOST']
-    MEILISEARCH_APIKEY = os.environ['MEILISEARCH_APIKEY']
-    related_stories = []
-    try:
-        client = meilisearch.Client(MEILISEARCH_HOST, MEILISEARCH_APIKEY)
-        related_stories = client.index(config.MEILISEARCH_STORY_INDEX).search(search_text, {
-            'showRankingScore': True, # If you want to show relavant score, show this
-            'limit': num
-        })['hits']
-    except Exception as e:
-        print("Search related stories error:", e)
-    return related_stories
-
-async def search_related_stories_gql(client, search_text: str, num: int=config.MEILISEARCH_RELATED_STORIES_NUM):
+async def search_related_stories(client, search_text: str, num: int=config.MEILISEARCH_RELATED_STORIES_NUM):
     '''
     Given search text, return related stories. Full story content will be retrieved from CMS.
     '''
