@@ -89,7 +89,7 @@ def search_related_stories(search_text: str, num: int=config.MEILISEARCH_RELATED
         print("Search related stories error:", e)
     return related_stories
 
-def search_related_stories_gql(client, search_text: str, num: int=config.MEILISEARCH_RELATED_STORIES_NUM):
+async def search_related_stories_gql(client, search_text: str, num: int=config.MEILISEARCH_RELATED_STORIES_NUM):
     '''
     Given search text, return related stories. Full story content will be retrieved from CMS.
     '''
@@ -99,7 +99,7 @@ def search_related_stories_gql(client, search_text: str, num: int=config.MEILISE
         # check the cache in redis
         prefix = FastAPICache.get_prefix()
         key = key_builder(f"{prefix}:search_stories", search_text)
-        _, cached_data = get_cache(key)
+        _, cached_data = await get_cache(key)
         if cached_data:
             # cache hit
             related_stories = json.loads(cached_data)
