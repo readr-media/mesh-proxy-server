@@ -3,6 +3,11 @@ import os
 import src.config as config
 from src.gql import gql_query
 
+from fastapi_cache import FastAPICache
+from src.cache import get_cache, set_cache
+from src.tool import key_builder
+import json
+
 gql_story_search = '''
 query Stories($where: StoryWhereInput!){
   stories(where: $where, take: 5){
@@ -183,12 +188,21 @@ def search_related_members(client, search_text: str, num: int=config.MEILISEARCH
     return related_members
 
 def search_related_publishers(client, search_text: str, num: int=config.MEILISEARCH_RELATED_PUBLISHERS_NUM):
+    prefix = FastAPICache.get_prefix()
     related_publishers = []
     try:
-        # search stories by content similarity
-        related_publishers = client.index(config.MEILISEARCH_PUBLISHER_INDEX).search(search_text, {
-            'limit': num
-        })['hits']
+        # check the cache in redis
+        key = key_builder(f"{prefix}:search_publishers", f"search_text")
+        _, cached_data = get_cache(key)
+        if cached_data:
+            # cache hit
+            related_publishers = json.loads(cached_data)
+        else:
+            # cache miss: search stories by content similarity
+            related_publishers = client.index(config.MEILISEARCH_PUBLISHER_INDEX).search(search_text, {
+                'limit': num
+            })['hits']
+            set_cache(key, json.dumps(related_publishers), ttl=config.SEARCH_PUBLISHER_CACHE_TTL)
     except Exception as e:
         print("Search related stories error:", e)
     return related_publishers
