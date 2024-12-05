@@ -10,7 +10,7 @@ import json
 
 gql_story_search = '''
 query Stories($where: StoryWhereInput!){
-  stories(where: $where, take: 5){
+  stories(where: $where){
     id
     title
     og_image
