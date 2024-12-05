@@ -55,6 +55,7 @@ class SocialPage(BaseModel):
 class Search(BaseModel):
   text: str
   objectives: list[str]
+  manual: bool = False
   @field_validator('text')
   @classmethod
   def search_rules(cls, v: str):

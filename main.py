@@ -17,6 +17,7 @@ from src.socialpage import getSocialPage, connect_db
 from src.invitation_code import generate_codes
 import src.config as config
 from src.notify import get_notifies
+from src.log import send_search_logging
 
 import os
 import json
@@ -122,6 +123,8 @@ async def latest_stories(latestStories: LatestStories):
 async def search_post(search: Search):
   search_text, objectives = search.text, search.objectives
   related_data = {}
+  
+  ### search from meilisearch
   client = search_api.connect_meilisearch()
   if "story" in objectives:
     related_data["story"] = await search_api.search_related_stories(client, search_text)
@@ -131,6 +134,12 @@ async def search_post(search: Search):
     related_data["member"] = search_api.search_related_members(client, search_text)
   if "publisher" in objectives:
     related_data["publisher"] = search_api.search_related_publishers(client, search_text)
+  
+  ### cloud logging
+  try:
+    send_search_logging(search)
+  except Exception as e:
+    print("send search logging error: ", str(e))
   return related_data
 
 @app.post('/socialpage')

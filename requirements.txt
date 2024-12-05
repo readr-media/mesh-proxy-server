@@ -14,6 +14,7 @@ firebase-admin==6.5.0
 pyjwt==2.8.0
 python-multipart==0.0.9
 pymongo==4.8.0
+google-cloud-logging==2.7.0
 starlette
 pytz
 meilisearch
