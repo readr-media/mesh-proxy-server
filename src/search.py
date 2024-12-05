@@ -120,7 +120,7 @@ async def search_related_stories(client, search_text: str, num: int=config.MEILI
                 if source_is_active==False:
                     continue
                 related_stories.append(story)
-            set_cache(key, json.dumps(related_stories), ttl=config.SEARCH_STORY_CACHE_TTL)
+            await set_cache(key, json.dumps(related_stories), ttl=config.SEARCH_STORY_CACHE_TTL)
     except Exception as e:
         print("Search related stories error:", e)
     return related_stories
