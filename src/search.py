@@ -92,6 +92,7 @@ async def search_related_stories(client, search_text: str, num: int=config.MEILI
         else:
             # search stories by content similarity
             search_stories = client.index(config.MEILISEARCH_STORY_INDEX).search(search_text, {
+                'showRankingScore': True,
                 'attributesToRetrieve': ['id', 'title'],
                 'limit': num
             })['hits']
@@ -112,14 +113,22 @@ async def search_related_stories(client, search_text: str, num: int=config.MEILI
                 raise(str(err))
 
             # post-filtering the stories
+            full_stories = {}
             for story in stories:
+                id = story.get('id', None)
                 source = story.get('source', None)
-                if source==None or isinstance(source, dict)==False:
+                if id==None or source==None or isinstance(source, dict)==False:
                     continue
                 source_is_active = source.get('is_active', False)
                 if source_is_active==False:
                     continue
-                related_stories.append(story)
+                full_stories[id] = story
+            
+            # ranking related stories
+            for story in search_stories:
+                target_story = full_stories.get(str(story['id']), None)
+                if target_story:
+                    related_stories.append(target_story)
             await set_cache(key, json.dumps(related_stories), ttl=config.SEARCH_STORY_CACHE_TTL)
     except Exception as e:
         print("Search related stories error:", e)
