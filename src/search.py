@@ -82,7 +82,7 @@ def ranking_result(sequence: list, content_table: dict):
     '''
     result = []
     for id in sequence:
-        content = content_table.get(id, None)
+        content = content_table.get(str(id), None)
         if content:
             result.append(content)
     return result
