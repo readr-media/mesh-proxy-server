@@ -75,6 +75,18 @@ def connect_meilisearch():
     client = meilisearch.Client(MEILISEARCH_HOST, MEILISEARCH_APIKEY)
     return client
 
+def ranking_result(sequence: list, content_table: dict):
+    '''
+        Sequence is the list of story[id] sorted by ranking score from high to low.
+        We follow the sequence and retrieve full story from content_table
+    '''
+    result = []
+    for id in sequence:
+        content = content_table.get(id, None)
+        if content:
+            result.append(content)
+    return result
+
 async def search_related_stories(client, search_text: str, num: int=config.MEILISEARCH_RELATED_STORIES_NUM):
     '''
     Given search text, return related stories. Full story content will be retrieved from CMS.
@@ -92,7 +104,6 @@ async def search_related_stories(client, search_text: str, num: int=config.MEILI
         else:
             # search stories by content similarity
             search_stories = client.index(config.MEILISEARCH_STORY_INDEX).search(search_text, {
-                'showRankingScore': True,
                 'attributesToRetrieve': ['id', 'title'],
                 'limit': num
             })['hits']
@@ -113,7 +124,7 @@ async def search_related_stories(client, search_text: str, num: int=config.MEILI
                 raise(str(err))
 
             # post-filtering the stories
-            full_stories = {}
+            content_table = {}
             for story in stories:
                 id = story.get('id', None)
                 source = story.get('source', None)
@@ -122,13 +133,10 @@ async def search_related_stories(client, search_text: str, num: int=config.MEILI
                 source_is_active = source.get('is_active', False)
                 if source_is_active==False:
                     continue
-                full_stories[id] = story
+                content_table[id] = story
             
             # ranking related stories
-            for story in search_stories:
-                target_story = full_stories.get(str(story['id']), None)
-                if target_story:
-                    related_stories.append(target_story)
+            related_stories = ranking_result(search_ids, content_table)
             await set_cache(key, json.dumps(related_stories), ttl=config.SEARCH_STORY_CACHE_TTL)
     except Exception as e:
         print("Search related stories error:", e)
@@ -144,11 +152,11 @@ def search_related_collections(client, search_text: str, num: int=config.MEILISE
         })['hits']
 
         # search full information in cms
-        collection_ids = [collect['id'] for collect in search_stories]
+        search_ids = [collect['id'] for collect in search_stories]
         collection_var = {
             "where": {
                 "id": {
-                    "in": collection_ids
+                    "in": search_ids
                 }   
             }
         }
@@ -156,10 +164,13 @@ def search_related_collections(client, search_text: str, num: int=config.MEILISE
         collections = data['collections']
 
         # filter out status not publish
+        content_table = {}
         for collect in collections:
+            id = collect['id']
             status = collect['status']
             if status=='publish':
-                related_collections.append(collect)
+                content_table[id] = collect
+        related_collections = ranking_result(search_ids, content_table)
     except Exception as e:
         print("Search related collections error:", e)
     return related_collections
@@ -174,11 +185,11 @@ def search_related_members(client, search_text: str, num: int=config.MEILISEARCH
         })['hits']
 
         # search full information in cms
-        member_ids = [member['id'] for member in search_members]
+        search_ids = [member['id'] for member in search_members]
         member_var = {
             "where": {
                 "id": {
-                    "in": member_ids
+                    "in": search_ids
                 },
                 "is_active": {
                     "equals": True
@@ -186,7 +197,9 @@ def search_related_members(client, search_text: str, num: int=config.MEILISEARCH
             }
         }
         data, _ = gql_query(MESH_GQL_ENDPOINT, gql_member_search, member_var)
-        related_members = data['members']
+        members = data['members']
+        content_table = {member['id']: member for member in members}
+        related_members = ranking_result(search_ids, content_table)
     except Exception as e:
         print("Search related members error:", e)
     return related_members
