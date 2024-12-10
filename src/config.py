@@ -75,6 +75,13 @@ SEARCH_MEMBER_CACHE_TTL = os.environ.get('SEARCH_MEMBER_CACHE_TTL', DEFAULT_SEAR
 DEFAULT_SEARCH_PUBLISHER_CACHE_TTL = 3600
 SEARCH_PUBLISHER_CACHE_TTL = os.environ.get('SEARCH_PUBLISHER_CACHE_TTL', DEFAULT_SEARCH_PUBLISHER_CACHE_TTL)
 
+# maximum and default search result num
+DEFAULT_SEARCH_NUM = 10
+SEARCH_NUM = os.environ.get('SEARCH_NUM', DEFAULT_SEARCH_NUM)
+
+DEAFAULT_MAX_SEARCH_NUM = 100
+MAX_SEARCH_NUM = os.environ.get('MAX_SEARCH_NUM', DEAFAULT_MAX_SEARCH_NUM)
+
 ### For notification
 PAYMENT_NOTIFIES = set(["notify_transaction", "notify_sponsorship", "approach_expiration"])
 

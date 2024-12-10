@@ -56,6 +56,7 @@ class Search(BaseModel):
   text: str
   objectives: list[str]
   manual: bool = False
+  num: int = config.SEARCH_NUM
   @field_validator('text')
   @classmethod
   def search_rules(cls, v: str):
@@ -71,6 +72,13 @@ class Search(BaseModel):
     for obj in v:
       if obj not in config.VALID_SEARCH_OBJECTIVES:
         raise ValueError(f'Invalid input. With invalid objective.')
+    return v
+  
+  @field_validator('num')
+  @classmethod
+  def num_rules(cls, v: int):
+    if v > config.MAX_SEARCH_NUM or v < config.SEARCH_NUM:
+      raise ValueError(f"Search num invalidated. Please in the range of [{config.SEARCH_NUM}, {config.MAX_SEARCH_NUM}]")
     return v
   
 class Notification(BaseModel):
