@@ -1,4 +1,4 @@
-from fastapi import FastAPI, status, Request
+from fastapi import FastAPI, status, Request, Path
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
@@ -6,6 +6,7 @@ from fastapi_cache import FastAPICache
 from fastapi_cache.decorator import cache
 from src.backend.redis import RedisBackendExtend
 from redis import asyncio as aioredis
+from typing import Annotated
 
 from src.request_body import LatestStories, SocialPage, Search, Notification
 import src.auth as Authentication
@@ -154,15 +155,18 @@ async def socialpage_pagination(socialPage: SocialPage):
   socialpage = await getSocialPage(mongo_url=mongo_url, member_id=member_id, index=index, take=take)
   return socialpage
 
-@app.post('/invitation_codes')
-async def generate_invitation_codes(request: Request):
+@app.post('/invitation_codes/{num_codes}')
+async def generate_invitation_codes(
+    request: Request, 
+    num_codes: Annotated[int, Path(default=config.INVITATION_CODE_NUMS, title="Number of codes to be generated", ge=1)]
+  ):
   uid, error_msg = middleware_verify_token(request)
   if error_msg:
     return JSONResponse(
       status_code = error_msg['status_code'],
       content = {"message": error_msg['content']}
     )
-  codes, error_msg = generate_codes(uid)
+  codes, error_msg = generate_codes(uid, num_codes)
   if error_msg:
     return JSONResponse(
       status_code = error_msg['status_code'],
