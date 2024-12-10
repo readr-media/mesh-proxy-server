@@ -155,10 +155,29 @@ async def socialpage_pagination(socialPage: SocialPage):
   socialpage = await getSocialPage(mongo_url=mongo_url, member_id=member_id, index=index, take=take)
   return socialpage
 
+@app.post('/invitation_codes')
+async def generate_invitation_codes(request: Request):
+  '''
+    Automatically generate config.NUM_INVITATION_CODES invitation codes
+  '''
+  uid, error_msg = middleware_verify_token(request)
+  if error_msg:
+    return JSONResponse(
+      status_code = error_msg['status_code'],
+      content = {"message": error_msg['content']}
+    )
+  codes, error_msg = generate_codes(uid)
+  if error_msg:
+    return JSONResponse(
+      status_code = error_msg['status_code'],
+      content = {"message": error_msg['content']}
+    )
+  return codes
+
 @app.post('/invitation_codes/{num_codes}')
 async def generate_invitation_codes(
     request: Request, 
-    num_codes: Annotated[int, Path(default=config.INVITATION_CODE_NUMS, title="Number of codes to be generated", ge=1)]
+    num_codes: Annotated[int, Path(title="Number of codes to be generated", ge=1)]
   ):
   uid, error_msg = middleware_verify_token(request)
   if error_msg:
