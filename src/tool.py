@@ -5,6 +5,17 @@ import hashlib
 import re
 from datetime import datetime
 
+from google.auth import default
+from google.auth.transport.requests import Request
+
+def get_auth_headers() -> dict:
+    """
+    Get Cloud Run service accout auth header。
+    """
+    credentials, _ = default()
+    credentials.refresh(Request())  # refresh token
+    return {"Authorization": f"Bearer {credentials.token}"}
+
 def save_file(dest_filename, data):
     if data:
         dirname = os.path.dirname(dest_filename)
@@ -14,7 +25,8 @@ def save_file(dest_filename, data):
             f.write(json.dumps(data, ensure_ascii=False))
         
 def save_keyfile_from_url(url: str, path: str):
-    res = requests.get(url)
+    headers = get_auth_headers()
+    res = requests.get(url, headers=headers)
     save_file(path, res.json())
     
 def key_builder(
