@@ -4,17 +4,17 @@ import requests
 import hashlib
 import re
 from datetime import datetime
+from google.cloud import storage
 
-from google.auth import default
-from google.auth.transport.requests import Request
+def read_blob(bucket_name, blob_name):
+    data = None
+    storage_client = storage.Client()
+    bucket = storage_client.bucket(bucket_name)
+    blob = bucket.blob(blob_name)
 
-def get_auth_headers() -> dict:
-    """
-    Get Cloud Run service accout auth header。
-    """
-    credentials, _ = default()
-    credentials.refresh(Request())  # refresh token
-    return {"Authorization": f"Bearer {credentials.token}"}
+    with blob.open("r") as f:
+        data = f.read()
+    return data  
 
 def save_file(dest_filename, data):
     if data:
@@ -23,12 +23,15 @@ def save_file(dest_filename, data):
             os.makedirs(dirname)
         with open(dest_filename, 'w', encoding='utf-8') as f:
             f.write(json.dumps(data, ensure_ascii=False))
+
+def download_keyfile(bucket_name, blob_name: str, destination_filename: str):
+    data = read_blob(bucket_name, blob_name)
+    save_file(destination_filename, data=json.loads(data))
         
 def save_keyfile_from_url(url: str, path: str):
-    headers = get_auth_headers()
-    res = requests.get(url, headers=headers)
-    save_file(path, res.json())
-    
+    res = requests.get(url)
+    save_file(path, res.json())  
+
 def key_builder(
     prefix: str = "",
     request: str = "",
