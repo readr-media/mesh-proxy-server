@@ -213,4 +213,5 @@ async def startup():
   FastAPICache.init(RedisBackendExtend(redis), prefix=f"{NAMESPACE}")
   
   ### initialize firebase
-  Authentication.initFirebaseAdmin()
+  # Authentication.initFirebaseAdmin()
+  Authentication.initFirebaseAdminGCS()

@@ -2,7 +2,7 @@ import firebase_admin
 from firebase_admin import auth
 
 from src.gql import gql_query, gql_transactions
-from src.tool import save_keyfile_from_url
+from src.tool import save_keyfile_from_url, download_gcs_file
 from datetime import datetime, timedelta, timezone
 
 import jwt
@@ -10,6 +10,18 @@ import os
 import pytz
 import src.config as config
 
+def initFirebaseAdminGCS():
+    '''
+    Initialize app by download Firebase keyfile from private GCS
+    '''
+    bucket_name = os.environ['PRIVATE_BUCKET_NAME']
+    blob_name   = os.environ['KEYFILE_BLOB_NAME']
+    download_path = os.path.join('credential', 'keyfile.json')
+    download_gcs_file(bucket_name, blob_name, download_path)
+
+    cred = firebase_admin.credentials.Certificate(download_path)
+    firebase_app = firebase_admin.initialize_app(cred)
+    print(f"Firebase project_id is {firebase_app.project_id}")
 
 def initFirebaseAdmin():
     '''

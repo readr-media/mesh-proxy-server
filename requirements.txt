@@ -7,6 +7,8 @@ pydantic==2.6.3
 aiohttp==3.8.1
 gql==3.0.0
 google-cloud-pubsub==2.21.1
+google-cloud-logging==2.7.0
+google-cloud-storage==2.11.0
 fastapi-cache2==0.2.1
 redis==4.6.0
 requests_toolbelt==1.0.0
@@ -14,7 +16,6 @@ firebase-admin==6.5.0
 pyjwt==2.8.0
 python-multipart==0.0.9
 pymongo==4.8.0
-google-cloud-logging==2.7.0
 starlette
 pytz
 meilisearch
