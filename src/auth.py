@@ -2,7 +2,7 @@ import firebase_admin
 from firebase_admin import auth
 
 from src.gql import gql_query, gql_transactions
-from src.tool import save_keyfile_from_url, get_auth_headers
+from src.tool import save_keyfile_from_url
 from datetime import datetime, timedelta, timezone
 
 import jwt
