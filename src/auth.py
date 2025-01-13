@@ -2,7 +2,7 @@ import firebase_admin
 from firebase_admin import auth
 
 from src.gql import gql_query, gql_transactions
-from src.tool import save_keyfile_from_url, download_keyfile
+from src.tool import download_keyfile
 from datetime import datetime, timedelta, timezone
 
 import jwt
@@ -17,9 +17,7 @@ def initFirebaseAdmin():
     '''
     bucket_name = os.environ['PRIVATE_BUCKET_NAME']
     blob_name = os.environ['KEYFILE_BLOB_NAME']
-    # credential_url = os.environ['FIREBASE_CREDENTIALS']
     service_key_path = os.path.join('credential', 'keyfile.json')
-    # save_keyfile_from_url(credential_url, service_key_path)
     download_keyfile(bucket_name, blob_name, service_key_path)
     
     cred = firebase_admin.credentials.Certificate(service_key_path)

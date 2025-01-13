@@ -1,6 +1,5 @@
 import json
 import os
-import requests
 import hashlib
 import re
 from datetime import datetime
@@ -27,10 +26,6 @@ def save_file(dest_filename, data):
 def download_keyfile(bucket_name, blob_name: str, destination_filename: str):
     data = read_blob(bucket_name, blob_name)
     save_file(destination_filename, data=json.loads(data))
-        
-def save_keyfile_from_url(url: str, path: str):
-    res = requests.get(url)
-    save_file(path, res.json())  
 
 def key_builder(
     prefix: str = "",
