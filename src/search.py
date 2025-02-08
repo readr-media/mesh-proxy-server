@@ -38,6 +38,7 @@ query Collections($where: CollectionWhereInput!){
       id
       customId
       nickname
+      name
     }
     heroImage{
       resized{
