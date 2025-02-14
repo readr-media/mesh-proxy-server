@@ -212,10 +212,11 @@ async def media_cookie(publisherId: str, credentials: HTTPAuthorizationCredentia
   signedcookie_key_name = os.environ['SIGNEDCOOKIE_KEY_NAME']
   signedcookie_base64_key = os.environ['SIGNEDCOOKIE_BASE64_KEY']
   gql_endpoint = os.environ['MESH_GQL_ENDPOINT']
+  jwt_secret   = os.environ['JWT_SECRET']
   
   # authenticate credentials
   token = credentials.credentials
-  data = decode_bearer_token(token)
+  data = decode_bearer_token(secret=jwt_secret, token=token)
   if "uid" not in data:
     return JSONResponse(
       status_code = status.HTTP_401_UNAUTHORIZED,

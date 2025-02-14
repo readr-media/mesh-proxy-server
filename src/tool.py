@@ -49,10 +49,10 @@ def extract_bearer_token(bearer_token):
         return match.group(1)
     return None
 
-def decode_bearer_token(self, token):
+def decode_bearer_token(secret, token):
     data = None
     try:
-        data = jwt.decode(token, self.jwt_secret, algorithms=['HS256'])
+        data = jwt.decode(token, secret, algorithms=['HS256'])
     except Exception as e:
         print("decode bearer token failed, reason: ",str(e))
     return data
