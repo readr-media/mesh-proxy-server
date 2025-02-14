@@ -9,8 +9,20 @@ import os
 from datetime import datetime 
 import pytz
 from src.tool import extract_bearer_token
+from src.gql import gql_query, gql_publisher_admin
 
-def middleware_verify_token(request: Request):
+def check_publisher_admin(gql_endpoint: str, publisherId: str, firebaseId: str):
+    response = None
+    try:
+        data, _ = gql_query(gql_endpoint, gql_publisher_admin.format(ID=publisherId))
+        publisher = data['publisher']
+        if firebaseId==publisher['admin']["firebaseId"]:
+            response = publisher
+    except Exception as e:
+        print("check publisher admin error: ", str(e))
+    return response
+
+def verify_token(request: Request):
     uid, error_msg = None, None
     
     ### check the existence of Authroization header, which is jwt_token
@@ -34,12 +46,12 @@ def middleware_verify_token(request: Request):
         }
     return uid, error_msg
 
-def middleware_story_acl(request: Request):
+def check_story_acl(request: Request):
     '''
         Check jwt_token which is retrieved from /accesstoken. 
         If jwt_token is valid, we dispatch the transactions into the ACL of gql forward header. 
     '''
-    acl_header, error_msg = {}, None
+    acl_header = {}
     unix_current = int(datetime.now(pytz.timezone('Asia/Taipei')).timestamp())
     
     ### check the existence of Authroization header, which is jwt_token

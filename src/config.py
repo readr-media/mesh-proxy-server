@@ -51,6 +51,9 @@ NOTIFY_INDEX = os.environ.get('NOTIFY_INDEX', DEFAULT_NOTIFY_INDEX)
 DEFAULT_MAX_AVATAR_DISPLAYED = 2
 MAX_AVATAR_DISPLAYED = os.environ.get('MAX_AVATAR_DISPLAYED', DEFAULT_MAX_AVATAR_DISPLAYED)
 
+DEFAULT_SIGNED_COOKIE_TTL = 3600
+SIGNED_COOKIE_TTL = os.environ.get('SIGNED_COOKIE_TTL', DEFAULT_SIGNED_COOKIE_TTL)
+
 ### Support multiple different pubsub topics, key is the topic abbreviated name, value is the actions in the topic
 PUBSUB_TOPIC_ACTIONS = {
     'payment': set([

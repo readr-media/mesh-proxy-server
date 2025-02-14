@@ -2,8 +2,11 @@ import json
 import os
 import hashlib
 import re
-from datetime import datetime
+from datetime import datetime, timezone
 from google.cloud import storage
+import jwt
+import base64
+import hmac
 
 def read_blob(bucket_name, blob_name):
     data = None
@@ -46,6 +49,14 @@ def extract_bearer_token(bearer_token):
         return match.group(1)
     return None
 
+def decode_bearer_token(self, token):
+    data = None
+    try:
+        data = jwt.decode(token, self.jwt_secret, algorithms=['HS256'])
+    except Exception as e:
+        print("decode bearer token failed, reason: ",str(e))
+    return data
+
 def get_isoformat_time(timestamp: int):
     dt = datetime.fromtimestamp(timestamp)
     iso_format = dt.strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3] + 'Z'
@@ -53,3 +64,36 @@ def get_isoformat_time(timestamp: int):
 
 def get_current_timestamp():
     return int(datetime.now().timestamp())
+
+def sign_cookie(
+    url_prefix: str,
+    key_name: str,
+    base64_key: str,
+    expiration_time: datetime,
+) -> str:
+    """Gets the Signed cookie value for the specified URL prefix and configuration.
+
+    Args:
+        url_prefix: URL prefix to sign.
+        key_name: name of the signing key.
+        base64_key: signing key as a base64 encoded string.
+        expiration_time: expiration time as time-zone aware datetime.
+
+    Returns:
+        Returns the Cloud-CDN-Cookie value based on the specified configuration.
+    """
+    encoded_url_prefix = base64.urlsafe_b64encode(
+        url_prefix.strip().encode("utf-8")
+    ).decode("utf-8")
+    epoch = datetime.fromtimestamp(0, timezone.utc)
+    expiration_timestamp = int((expiration_time - epoch).total_seconds())
+    decoded_key = base64.urlsafe_b64decode(base64_key)
+
+    policy = f"URLPrefix={encoded_url_prefix}:Expires={expiration_timestamp}:KeyName={key_name}"
+
+    digest = hmac.new(decoded_key, policy.encode("utf-8"), hashlib.sha1).digest()
+    signature = base64.urlsafe_b64encode(digest).decode("utf-8")
+
+    signed_policy = f"Cloud-CDN-Cookie={policy}:Signature={signature}"
+
+    return signed_policy

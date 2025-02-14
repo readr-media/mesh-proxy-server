@@ -80,3 +80,14 @@ query Publishers{
   }
 }
 """
+
+gql_publisher_admin = """
+query publisher{{
+  publisher(where: {{id: {ID} }}){{
+    customId
+    admin{{
+      firebaseId
+    }}
+  }}
+}}
+"""

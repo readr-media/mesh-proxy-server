@@ -1,9 +1,9 @@
-from fastapi import FastAPI, status, Request, Path
+from fastapi import FastAPI, status, Request, Path, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 from fastapi_cache import FastAPICache
-from fastapi_cache.decorator import cache
 from src.backend.redis import RedisBackendExtend
 from redis import asyncio as aioredis
 from typing import Annotated
@@ -12,8 +12,8 @@ from src.request_body import LatestStories, SocialPage, Search, Notification
 import src.auth as Authentication
 import src.proxy as proxy
 import src.search as search_api
-from src.middleware import middleware_story_acl, middleware_verify_token
-from src.tool import extract_bearer_token
+import src.middleware as middleware
+from src.tool import extract_bearer_token, decode_bearer_token, sign_cookie
 from src.socialpage import getSocialPage, connect_db
 from src.invitation_code import generate_codes
 import src.config as config
@@ -22,6 +22,7 @@ from src.log import send_search_logging
 
 import os
 import json
+from datetime import datetime, timedelta, timezone
 
 ### App related variables
 app = FastAPI()
@@ -35,6 +36,7 @@ app.add_middleware(
     allow_methods = methods,
     allow_headers = headers
 )
+bearer_scheme = HTTPBearer(auto_error=False)
 
 ### API Design
 @app.get('/')
@@ -98,7 +100,7 @@ async def gql(request: Request):
   Forward gql request by http method without cache.
   '''
   gql_endpoint = os.environ['MESH_GQL_ENDPOINT']
-  acl_header, error_msg = middleware_story_acl(request)
+  acl_header, error_msg = middleware.check_story_acl(request)
   if error_msg:
     return JSONResponse(
       status_code=status.HTTP_401_UNAUTHORIZED,
@@ -160,7 +162,7 @@ async def generate_invitation_codes(request: Request):
   '''
     Automatically generate config.NUM_INVITATION_CODES invitation codes
   '''
-  uid, error_msg = middleware_verify_token(request)
+  uid, error_msg = middleware.verify_token(request)
   if error_msg:
     return JSONResponse(
       status_code = error_msg['status_code'],
@@ -179,7 +181,7 @@ async def generate_invitation_codes(
     request: Request, 
     num_codes: Annotated[int, Path(title="Number of codes to be generated", ge=1)]
   ):
-  uid, error_msg = middleware_verify_token(request)
+  uid, error_msg = middleware.verify_token(request)
   if error_msg:
     return JSONResponse(
       status_code = error_msg['status_code'],
@@ -203,6 +205,43 @@ async def notifications(request: Notification):
   db = connect_db(mongo_url, os.environ.get('ENV', 'dev'))
   notifies = get_notifies(db=db, memberId=memberId, index=index, take=take)
   return notifies
+
+@app.get('/media/cookie/{publisherId}')
+async def media_cookie(publisherId: str, credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme)):
+  signedcookie_url_prefix = os.environ['SIGNEDCOOKIE_URL_PREFIX']
+  signedcookie_key_name = os.environ['SIGNEDCOOKIE_KEY_NAME']
+  signedcookie_base64_key = os.environ['SIGNEDCOOKIE_BASE64_KEY']
+  gql_endpoint = os.environ['MESH_GQL_ENDPOINT']
+  
+  # authenticate credentials
+  token = credentials.credentials
+  data = decode_bearer_token(token)
+  if "uid" not in data:
+    return JSONResponse(
+      status_code = status.HTTP_401_UNAUTHORIZED,
+      content = {"message": "Token is missing or wrong."}
+    )
+  firebaseId = data['uid']
+  print("Signed cookie user: ", firebaseId)
+  
+  # check publisher admin
+  publisher = middleware.check_publisher_admin(gql_endpoint, publisherId, firebaseId)
+  if publisher==None or ("customId" not in publisher):
+    return JSONResponse(
+      status_code = status.HTTP_401_UNAUTHORIZED,
+      content = {"message": "You are not publisher admin."}
+    )
+  customId = publisher['customId']
+  print("Signed cookie publisher.customId: ", customId)
+  
+  # get signed cookie policy
+  policy = sign_cookie(
+    url_prefix = f"{signedcookie_url_prefix}/statements/media/{customId}", 
+    key_name = signedcookie_key_name, 
+    base64_key = signedcookie_base64_key,
+    expiration_time = datetime.now(timezone.utc) + timedelta(seconds=config.SIGNED_COOKIE_TTL)
+  )
+  return policy
 
 @app.on_event("startup")
 async def startup():
