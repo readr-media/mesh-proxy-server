@@ -247,7 +247,7 @@ async def media_cookie(publisherId: str, origin: str="*", credentials: HTTPAutho
   setCookie = f"{policy}; Domain={signedcookie_url_prefix}; Path=/statements/media; SameSite=Lax; Expires={expires_str} ;Secure"
   headers = {
     "Set-Cookie": setCookie,
-    "Access-Control-Allow-Credentials": True,
+    "Access-Control-Allow-Credentials": "true",
     "Access-Control-Allow-Origin": origin
   }
   return JSONResponse(content="Signed cookie is set.", headers=headers)
