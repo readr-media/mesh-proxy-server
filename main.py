@@ -207,7 +207,7 @@ async def notifications(request: Notification):
   return notifies
 
 @app.get('/media/cookie/{publisherId}')
-async def media_cookie(publisherId: str, credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme)):
+async def media_cookie(publisherId: str, origin: str="*", credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme)):
   signedcookie_url_prefix = os.environ['SIGNEDCOOKIE_URL_PREFIX']
   signedcookie_key_name = os.environ['SIGNEDCOOKIE_KEY_NAME']
   signedcookie_base64_key = os.environ['SIGNEDCOOKIE_BASE64_KEY']
@@ -236,13 +236,24 @@ async def media_cookie(publisherId: str, credentials: HTTPAuthorizationCredentia
   print("Signed cookie publisher.customId: ", customId)
   
   # get signed cookie policy
+  expiration_time = datetime.now(timezone.utc) + timedelta(seconds=config.SIGNED_COOKIE_TTL)
+  expires_str = expiration_time.strftime("%a, %d %b %Y %H:%M:%S GMT")
   policy = sign_cookie(
     url_prefix = f"{signedcookie_url_prefix}/statements/media/{customId}", 
     key_name = signedcookie_key_name, 
     base64_key = signedcookie_base64_key,
-    expiration_time = datetime.now(timezone.utc) + timedelta(seconds=config.SIGNED_COOKIE_TTL)
+    expiration_time = expiration_time
   )
-  return policy
+  setCookie = f"{policy}; Domain={signedcookie_url_prefix}; Path=/statements/media; SameSite=Lax; Expires={expires_str} ;Secure"
+  headers = {
+    "Set-Cookie": setCookie,
+    "Access-Control-Allow-Credentials": True,
+    "Access-Control-Allow-Origin": origin
+  }
+  return JSONResponse({
+    "message": "Signed cookie is set.",
+    "headers": headers
+  })
 
 @app.on_event("startup")
 async def startup():
