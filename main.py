@@ -250,10 +250,7 @@ async def media_cookie(publisherId: str, origin: str="*", credentials: HTTPAutho
     "Access-Control-Allow-Credentials": True,
     "Access-Control-Allow-Origin": origin
   }
-  return JSONResponse({
-    "message": "Signed cookie is set.",
-    "headers": headers
-  })
+  return JSONResponse(content="Signed cookie is set.", headers=headers)
 
 @app.on_event("startup")
 async def startup():
