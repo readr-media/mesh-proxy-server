@@ -244,7 +244,7 @@ async def media_cookie(publisherId: str, origin: str="*", credentials: HTTPAutho
     base64_key = signedcookie_base64_key,
     expiration_time = expiration_time
   )
-  setCookie = f"{policy};Domain={signedcookie_url_prefix};Path=/statements/media;SameSite=Lax;Expires={expires_str};HttpOnly"
+  setCookie = f"{policy};Domain={signedcookie_url_prefix.replace("https://", "")};Path=/statements/media;SameSite=Lax;Expires={expires_str};HttpOnly"
   headers = {
     "Set-Cookie": setCookie,
     "Access-Control-Allow-Credentials": "true",
