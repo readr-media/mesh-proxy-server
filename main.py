@@ -209,7 +209,7 @@ async def notifications(request: Notification):
 @app.get('/media/cookie/{publisherId}')
 async def media_cookie(
     publisherId: str, 
-    origin: Annotated[str | None, Header()] = "*", 
+    origin: Annotated[str | None, Header()] = None, 
     credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme)
   ):
   signedcookie_url_prefix = os.environ['SIGNEDCOOKIE_URL_PREFIX']
@@ -220,13 +220,16 @@ async def media_cookie(
   
   # authenticate credentials
   try:
+    if not origin:
+      raise(Exception("Origin is missing."))
+    print("origin: ", origin)
     token = credentials.credentials
     data = decode_bearer_token(secret=jwt_secret, token=token)
     firebaseId = data['uid']
   except Exception as e:
     return JSONResponse(
       status_code = status.HTTP_401_UNAUTHORIZED,
-      content = {"message": f"Token is missing or wrong. {str(e)}"}
+      content = {"message": f"Authentication failed. {str(e)}"}
     )
   
   # check publisher admin
