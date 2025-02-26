@@ -1,4 +1,4 @@
-from fastapi import FastAPI, status, Request, Path, Depends
+from fastapi import FastAPI, status, Request, Path, Depends, Header
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
@@ -207,7 +207,11 @@ async def notifications(request: Notification):
   return notifies
 
 @app.get('/media/cookie/{publisherId}')
-async def media_cookie(publisherId: str, origin: str="*", credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme)):
+async def media_cookie(
+    publisherId: str, 
+    origin: Annotated[str | None, Header()] = "*", 
+    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme)
+  ):
   signedcookie_url_prefix = os.environ['SIGNEDCOOKIE_URL_PREFIX']
   signedcookie_key_name = os.environ['SIGNEDCOOKIE_KEY_NAME']
   signedcookie_base64_key = os.environ['SIGNEDCOOKIE_BASE64_KEY']
@@ -244,7 +248,7 @@ async def media_cookie(publisherId: str, origin: str="*", credentials: HTTPAutho
     expiration_time = expiration_time
   )
   domain = str(signedcookie_url_prefix).replace("https://", "")
-  setCookie = f"{policy};Domain={domain};Path=/statements/media;SameSite=None;Secure;Expires={expires_str};HttpOnly"
+  setCookie = f"{policy};Domain={domain};Path=/statements/media;SameSite=Lax;Expires={expires_str};HttpOnly"
   headers = {
     "Set-Cookie": setCookie,
     "Access-Control-Allow-Credentials": "true",
