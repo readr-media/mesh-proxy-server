@@ -26,16 +26,6 @@ from datetime import datetime, timedelta, timezone
 
 ### App related variables
 app = FastAPI()
-origins = ["*"]
-methods = ["*"]
-headers = ["*"]
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins = origins,
-    allow_credentials = True,
-    allow_methods = methods,
-    allow_headers = headers
-)
 bearer_scheme = HTTPBearer(auto_error=False)
 
 ### API Design
@@ -222,7 +212,6 @@ async def media_cookie(
   try:
     if not origin:
       raise(Exception("Origin is missing."))
-    print("origin: ", origin)
     token = credentials.credentials
     data = decode_bearer_token(secret=jwt_secret, token=token)
     firebaseId = data['uid']
