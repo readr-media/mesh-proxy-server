@@ -215,20 +215,15 @@ async def media_cookie(publisherId: str, origin: str="*", credentials: HTTPAutho
   jwt_secret   = os.environ['JWT_SECRET']
   
   # authenticate credentials
-  if not credentials:
+  try:
+    token = credentials.credentials
+    data = decode_bearer_token(secret=jwt_secret, token=token)
+    firebaseId = data['uid']
+  except Exception as e:
     return JSONResponse(
       status_code = status.HTTP_401_UNAUTHORIZED,
-      content = {"message": "Token is missing or wrong."}
+      content = {"message": f"Token is missing or wrong. {str(e)}"}
     )
-  token = credentials.credentials
-  data = decode_bearer_token(secret=jwt_secret, token=token)
-  if "uid" not in data:
-    return JSONResponse(
-      status_code = status.HTTP_401_UNAUTHORIZED,
-      content = {"message": "Token is missing or wrong."}
-    )
-  firebaseId = data['uid']
-  print("Signed cookie user: ", firebaseId)
   
   # check publisher admin
   publisher = middleware.check_publisher_admin(gql_endpoint, publisherId, firebaseId)
@@ -238,7 +233,6 @@ async def media_cookie(publisherId: str, origin: str="*", credentials: HTTPAutho
       content = {"message": "You are not publisher admin."}
     )
   customId = publisher['customId']
-  print("Signed cookie publisher.customId: ", customId)
   
   # get signed cookie policy
   expiration_time = datetime.now(timezone.utc) + timedelta(seconds=config.SIGNED_COOKIE_TTL)
