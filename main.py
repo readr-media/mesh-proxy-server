@@ -215,6 +215,11 @@ async def media_cookie(publisherId: str, origin: str="*", credentials: HTTPAutho
   jwt_secret   = os.environ['JWT_SECRET']
   
   # authenticate credentials
+  if not credentials:
+    return JSONResponse(
+      status_code = status.HTTP_401_UNAUTHORIZED,
+      content = {"message": "Token is missing or wrong."}
+    )
   token = credentials.credentials
   data = decode_bearer_token(secret=jwt_secret, token=token)
   if "uid" not in data:
