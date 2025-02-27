@@ -240,11 +240,12 @@ async def media_cookie(
     expiration_time = expiration_time
   )
   domain = str(signedcookie_url_prefix).replace("https://", "")
-  setCookie = f"{policy};Domain={domain};Path=/statements/media;SameSite=Lax;Expires={expires_str};HttpOnly"
+  setCookie = f"{policy};Domain={domain};Path=/statements/media;SameSite=None;Secure;Expires={expires_str};HttpOnly"
   headers = {
     "Set-Cookie": setCookie,
     "Access-Control-Allow-Credentials": "true",
-    "Access-Control-Allow-Origin": origin
+    "Access-Control-Allow-Origin": origin,
+    "Access-Control-Allow-Methods": "GET, OPTIONS",
   }
   return JSONResponse(content="Signed cookie is set.", headers=headers)
 
