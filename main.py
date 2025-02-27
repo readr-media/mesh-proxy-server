@@ -196,6 +196,16 @@ async def notifications(request: Notification):
   notifies = get_notifies(db=db, memberId=memberId, index=index, take=take)
   return notifies
 
+@app.options('/media/cookie/{publisherId}')
+async def preflight_media_cookie(origin: Annotated[str | None, Header()] = None):
+  headers = {
+      "Access-Control-Allow-Credentials": "true",
+      "Access-Control-Allow-Origin": origin or "*", 
+      "Access-Control-Allow-Methods": "GET, OPTIONS",
+      "Access-Control-Allow-Headers": "Authorization, Content-Type",
+  }
+  return JSONResponse(status_code=status.HTTP_204_NO_CONTENT, headers=headers)
+
 @app.get('/media/cookie/{publisherId}')
 async def media_cookie(
     publisherId: str, 
