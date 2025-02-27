@@ -1,4 +1,4 @@
-from fastapi import FastAPI, status, Request, Path, Depends, Header
+from fastapi import FastAPI, status, Request, Path, Depends, Header, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
@@ -204,7 +204,7 @@ async def preflight_media_cookie(origin: Annotated[str | None, Header()] = None)
       "Access-Control-Allow-Methods": "GET, OPTIONS",
       "Access-Control-Allow-Headers": "Authorization, Content-Type",
   }
-  return JSONResponse(status_code=status.HTTP_204_NO_CONTENT, headers=headers)
+  return Response(status_code=status.HTTP_204_NO_CONTENT, headers=headers)
 
 @app.get('/media/cookie/{publisherId}')
 async def media_cookie(
