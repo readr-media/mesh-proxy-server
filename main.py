@@ -18,7 +18,7 @@ from src.socialpage import getSocialPage, connect_db
 from src.invitation_code import generate_codes
 import src.config as config
 from src.notify import get_notifies
-from src.log import send_search_logging
+from src.log import send_search_logging, send_performance_logging
 
 import os
 import json
@@ -35,6 +35,7 @@ async def health_checking():
 
 @app.post('/accesstoken')
 async def accesstoken(request: Request):
+  start_time = datetime.now().timestamp()
   bearer_token = (request.headers.get("Authorization", None) or request.cookies.get('Authorization', None))
   jwt_token = extract_bearer_token(bearer_token)
   if not jwt_token:
@@ -55,6 +56,14 @@ async def accesstoken(request: Request):
       status_code=status.HTTP_401_UNAUTHORIZED,
       content={"message": "Failed to generate jwt token."}
     )
+  
+  # log performance
+  end_time = datetime.now().timestamp()
+  send_performance_logging({
+    "endpoint": "POST: /accesstoken",
+    "execute_time": end_time - start_time
+  })
+  
   return JSONResponse(
     status_code=status.HTTP_200_OK,
     content={"token": jwt_token}
@@ -65,6 +74,7 @@ async def pubsub(request: dict):
   '''
   Forward pubsub messages
   '''
+  start_time = datetime.now().timestamp()
   ### categorize pubsub into different topics
   action = request.get('action', '')
   action_type = 'user_action'
@@ -82,6 +92,13 @@ async def pubsub(request: dict):
     )
   response = proxy.pubsub_proxy(payload, action_type)
   print("pubsub response: ", response)
+  
+  ### log performance
+  end_time = datetime.now().timestamp()
+  send_performance_logging({
+    "endpoint": "POST: /pubsub",
+    "execute_time": end_time - start_time
+  })
   return dict({"message": response})
 
 @app.post('/gql')
@@ -89,6 +106,7 @@ async def gql(request: Request):
   '''
   Forward gql request by http method without cache.
   '''
+  start_time = datetime.now().timestamp()
   gql_endpoint = os.environ['MESH_GQL_ENDPOINT']
   acl_header, error_msg = middleware.check_story_acl(request)
   if error_msg:
@@ -102,6 +120,13 @@ async def gql(request: Request):
       status_code=status.HTTP_400_BAD_REQUEST,
       content={"message": f"{error_msg}"}
     )
+  # log performance
+  end_time = datetime.now().timestamp()
+  send_performance_logging({
+    "endpoint": "POST: /gql",
+    "execute_time": end_time - start_time,
+    "data": await request.json(),
+  })
   return dict(response)
 
 @app.post('/latest_stories')
@@ -109,11 +134,20 @@ async def latest_stories(latestStories: LatestStories):
   '''
   Get latest stories by publisher ids.
   '''
+  start_time = datetime.now().timestamp()
   response = await proxy.latest_stories_proxy(latestStories)
+  # log performance
+  end_time = datetime.now().timestamp()
+  send_performance_logging({
+    "endpoint": "POST: /latest_stories",
+    "execute_time": end_time - start_time,
+    "data": latestStories.model_dump(),
+  })
   return response
 
 @app.post('/search')
 async def search_post(search: Search):
+  start_time = datetime.now().timestamp()
   search_text, objectives = search.text, search.objectives
   related_data = {}
   
@@ -128,11 +162,14 @@ async def search_post(search: Search):
   if "publisher" in objectives:
     related_data["publisher"] = search_api.search_related_publishers(client, search_text)
   
-  ### cloud logging
-  try:
-    send_search_logging(search)
-  except Exception as e:
-    print("send search logging error: ", str(e))
+  # cloud logging
+  end_time = datetime.now().timestamp()
+  send_search_logging(search)
+  send_performance_logging({
+    "endpoint": "POST: /search",
+    "execute_time": end_time - start_time,
+    "data": search.model_dump(),
+  })
   return related_data
 
 @app.post('/socialpage')
@@ -140,31 +177,21 @@ async def socialpage_pagination(socialPage: SocialPage):
   '''
   Given member_id, return social_page based on index and take
   '''
+  start_time = datetime.now().timestamp()
   mongo_url = os.environ['MONGO_URL']
   member_id = socialPage.member_id
   index     = socialPage.index
   take      = socialPage.take
   socialpage = await getSocialPage(mongo_url=mongo_url, member_id=member_id, index=index, take=take)
+  
+  # log performance
+  end_time = datetime.now().timestamp()
+  send_performance_logging({
+    "endpoint": "POST: /socialpage",
+    "execute_time": end_time - start_time,
+    "data": socialPage.model_dump(),
+  })
   return socialpage
-
-@app.post('/invitation_codes')
-async def generate_invitation_codes(request: Request):
-  '''
-    Automatically generate config.NUM_INVITATION_CODES invitation codes
-  '''
-  uid, error_msg = middleware.verify_token(request)
-  if error_msg:
-    return JSONResponse(
-      status_code = error_msg['status_code'],
-      content = {"message": error_msg['content']}
-    )
-  codes, error_msg = generate_codes(uid)
-  if error_msg:
-    return JSONResponse(
-      status_code = error_msg['status_code'],
-      content = {"message": error_msg['content']}
-    )
-  return codes
 
 @app.post('/invitation_codes/{num_codes}')
 async def generate_invitation_codes(
@@ -187,6 +214,7 @@ async def generate_invitation_codes(
 
 @app.post('/notifications')
 async def notifications(request: Notification):
+  start_time = datetime.now().timestamp()
   mongo_url = os.environ['MONGO_URL']
   memberId = request.member_id
   index = request.index
@@ -194,6 +222,14 @@ async def notifications(request: Notification):
   
   db = connect_db(mongo_url, os.environ.get('ENV', 'dev'))
   notifies = get_notifies(db=db, memberId=memberId, index=index, take=take)
+  
+  # log performance
+  end_time = datetime.now().timestamp()
+  send_performance_logging({
+    "endpoint": "POST: /notifications",
+    "execute_time": end_time - start_time,
+    "data": request.model_dump(),
+  })
   return notifies
 
 @app.options('/media/cookie/{publisherId}')
@@ -212,6 +248,7 @@ async def media_cookie(
     origin: Annotated[str | None, Header()] = None, 
     credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme)
   ):
+  start_time = datetime.now().timestamp()
   signedcookie_url_prefix = os.environ['SIGNEDCOOKIE_URL_PREFIX']
   signedcookie_key_name = os.environ['SIGNEDCOOKIE_KEY_NAME']
   signedcookie_base64_key = os.environ['SIGNEDCOOKIE_BASE64_KEY']
@@ -257,6 +294,13 @@ async def media_cookie(
     "Access-Control-Allow-Origin": origin,
     "Access-Control-Allow-Methods": "GET, OPTIONS",
   }
+  # logging
+  end_time = datetime.now().timestamp()
+  send_performance_logging({
+    "endpoint": "GET: /media/cookie",
+    "execute_time": end_time - start_time,
+    "data": {"publisherId": publisherId},
+  })
   return JSONResponse(content="Signed cookie is set.", headers=headers)
 
 @app.on_event("startup")
