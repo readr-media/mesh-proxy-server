@@ -183,6 +183,7 @@ async def getSocialPage(mongo_url: str, member_id: str, index: int=0, take: int=
                 "full_screen_ad": story['full_screen_ad'],
                 "isMember": story['isMember'],
                 "published_date": story['published_date'],
+                "story_type": story.get('story_type', 'story'),
                 "readCount": readCount,
                 "commentCount": commentCount,
                 "following_actions": categorized_picks
