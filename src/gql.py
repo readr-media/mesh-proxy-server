@@ -14,6 +14,7 @@ def gql_query(gql_endpoint, gql_string: str=None, gql_variables: str=None, opera
       fetch_schema_from_transport=True,
       execute_timeout=config.DEFAULT_GQL_EXEC_TIMEOUT
     )
+
     json_data = gql_client.execute(gql(gql_string), variable_values=gql_variables, operation_name=operation_name)
   except Exception as e:
     print("GQL query error:", e)
