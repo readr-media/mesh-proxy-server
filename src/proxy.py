@@ -66,6 +66,7 @@ async def latest_stories_proxy(latestStories: LatestStories):
       key = key_builder(f"{prefix}:category_latest", f"{category}:{publisher_id}")
       all_keys.append(key)
     values = await mget_cache(all_keys)
+    print(all_keys)
     redis_end_time = datetime.now()
     
     ### organize the data
