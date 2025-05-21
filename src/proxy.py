@@ -9,6 +9,7 @@ from src.cache import get_cache, set_cache, mget_cache
 from src.request_body import LatestStories
 from datetime import datetime
 from fastapi import Request
+from src.log import send_performance_logging
 from starlette.datastructures import UploadFile
 
 def pubsub_proxy(payload, action_type: str='user_action'):
@@ -52,6 +53,7 @@ async def gql_proxy_raw(gql_endpoint: str, request: Request, acl_headers: dict):
     return json_data, error_message
   
 async def latest_stories_proxy(latestStories: LatestStories):
+    start_time = datetime.now()
     publishers = latestStories.publishers
     category = latestStories.category
     index = latestStories.index
@@ -64,6 +66,7 @@ async def latest_stories_proxy(latestStories: LatestStories):
       key = key_builder(f"{prefix}:category_latest", f"{category}:{publisher_id}")
       all_keys.append(key)
     values = await mget_cache(all_keys)
+    redis_end_time = datetime.now()
     
     ### organize the data
     values_filtered = [dict(json.loads(value)) for value in values if value!=None] if values!=None else []
@@ -77,6 +80,7 @@ async def latest_stories_proxy(latestStories: LatestStories):
         published_timestamp = int(datetime.strptime(published_date, "%Y-%m-%dT%H:%M:%S.%fZ").timestamp())
         story['published_timestamp'] = published_timestamp
         all_stories.append(story)
+    organize_end_time = datetime.now()
     expire_time = update_time + config.EXPIRE_LATEST_STORIES_TIME
     all_stories = sorted(all_stories, key=lambda x: x['published_timestamp'], reverse=True)  
     all_stories_pagination = all_stories[index: index+take]
@@ -86,4 +90,22 @@ async def latest_stories_proxy(latestStories: LatestStories):
       "num_stories": len(all_stories),
       "stories": all_stories_pagination
     })
+    end_time = datetime.now()
+    data = {
+        "function": "latest_stories_proxy",
+        "stages": [
+          {
+            "name": "get data from redis",
+            "start_time": str(start_time),
+            "end_time": str(redis_end_time),
+            "duration": (redis_end_time - start_time).total_seconds()
+          },
+          {
+            "name": "organize the data",
+            "start_time": str(redis_end_time),
+            "end_time": str(organize_end_time),
+        "end_time": str(end_time),
+        "duration": (end_time - start_time).total_seconds()
+    }
+    send_performance_logging(data)
     return response
