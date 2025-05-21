@@ -106,6 +106,8 @@ async def latest_stories_proxy(latestStories: LatestStories):
             "end_time": str(organize_end_time),
         "end_time": str(end_time),
         "duration": (end_time - start_time).total_seconds()
+          }
+        ]
     }
     send_performance_logging(data)
     return response
