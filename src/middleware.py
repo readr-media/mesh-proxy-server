@@ -61,61 +61,52 @@ def check_story_acl(request: Request):
     # 取得當前監控器
     monitor = get_current_monitor()
     
+    # 檢查 Authorization header
+    bearer_token = request.headers.get("Authorization", None)
+    jwt_token = extract_bearer_token(bearer_token)
+    if jwt_token == None:
+        return acl_header, None
+
+    # 取得 ACL 快取
+    from src.acl_cache import get_acl_cache, cached_jwt_decode, process_acl_from_payload
+    acl_cache = get_acl_cache()
+    
+    # 嘗試從快取取得 ACL
+    cached_acl = acl_cache.get(jwt_token)
+    if cached_acl is not None:
+        if monitor:
+            monitor.add_stage("acl_cache_hit", 0.001)  # 快取命中
+        return cached_acl, None
+    
     # 監控 JWT 解碼階段
     if monitor:
-        # 手動計時，因為這是同步函數
         jwt_start = time.time()
-        ### check the existence of Authroization header, which is jwt_token
-        bearer_token = request.headers.get("Authorization", None)
-        jwt_token = extract_bearer_token(bearer_token)
-        if jwt_token==None:
+    
+    try:
+        # 使用快取的 JWT 解碼
+        payload = cached_jwt_decode(jwt_token, os.environ['JWT_SECRET'])
+        
+        if monitor:
             monitor.add_stage("jwt_decoding", time.time() - jwt_start)
-            return acl_header, None
-
-        try:
-            ### check the content in the jwt_token
-            # jwt.decode will return error code automatically if there is any invalid data in jwt_token
-            payload = jwt.decode(jwt_token, os.environ['JWT_SECRET'], algorithms='HS256')
-            scope = payload['scope']
-            monitor.add_stage("jwt_decoding", time.time() - jwt_start)
-            
-            # 監控 ACL 處理階段
+        
+        # 監控 ACL 處理階段
+        if monitor:
             acl_start = time.time()
-            # wrap acl header
-            if scope == 'all':
-                acl_header = {
-                    "x-access-token-scope": "mesh:member-stories:all"
-                }
-            else:
-                # filter out expired media
-                mediaArr = payload.get('media', [])
-                mediaArr_filtered = set()
-                for media in mediaArr:
-                    media_id, media_expireDate = media
-                    if media_expireDate < unix_current:
-                        continue
-                    mediaArr_filtered.add(media_id)
-                mediaArr_str = ','.join(list(mediaArr_filtered))
-                # filter out expired story
-                storyArr = payload.get('story', [])
-                storyArr_filtered = set()
-                for story in storyArr:
-                    story_id, story_expireDate = story
-                    if story_expireDate < unix_current:
-                        continue
-                    storyArr_filtered.add(story_id)
-                storyArr_str = ','.join(list(storyArr_filtered))
-                # wrap acl header
-                acl_header = {
-                    "x-access-token-scope": "mesh:member-stories:media",
-                    "x-access-token-media": mediaArr_str,
-                    "x-access-token-story": storyArr_str,
-                }
+        
+        # 處理 ACL
+        acl_header = process_acl_from_payload(payload)
+        
+        # 快取結果
+        acl_cache.set(jwt_token, acl_header)
+        
+        if monitor:
             monitor.add_stage("acl_processing", time.time() - acl_start)
-        except Exception as e:
-            print("middleware_story_acl error: ", e)
+            
+    except Exception as e:
+        print("middleware_story_acl error: ", e)
+        if monitor:
             monitor.add_stage("jwt_decoding", time.time() - jwt_start)
-            return acl_header, None
+        return acl_header, None
     else:
         # 如果沒有監控器，使用原本的邏輯
         ### check the existence of Authroization header, which is jwt_token

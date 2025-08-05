@@ -19,3 +19,4 @@ pymongo==4.8.0
 starlette
 pytz
 meilisearch
+orjson==3.9.10
