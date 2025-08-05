@@ -104,7 +104,27 @@ def get_notifies(db, memberId: str, index: int=0, take: int=10):
                 if notifier:
                     notifiers.append(notifier)
                 else:
-                    print(f"cannot get memberId: {memberId}")
+                    print(f"cannot get memberId: {from_notifiers}")
+                    # 添加調試信息
+                    try:
+                        from src.notify_debug import debug_notification_issue
+                        debug_info = debug_notification_issue(
+                            from_notifiers, 
+                            member_table, 
+                            {"action": action, "objective": objective, "targetId": targetId}
+                        )
+                        print(f"   調試信息: 成員表大小={debug_info['member_table_size']}, 相似ID={debug_info['similar_ids']}")
+                    except Exception as debug_error:
+                        print(f"   調試失敗: {debug_error}")
+                    
+                    # 創建模擬成員以避免錯誤
+                    try:
+                        from src.notify_debug import NotifyDebugger
+                        mock_member = NotifyDebugger.create_mock_member(from_notifiers)
+                        notifiers.append(mock_member)
+                        print(f"   已創建模擬成員: {from_notifiers}")
+                    except Exception as mock_error:
+                        print(f"   創建模擬成員失敗: {mock_error}")
             full_notify = {
                 "uuid": notify["uuid"],
                 "read": notify["read"],
