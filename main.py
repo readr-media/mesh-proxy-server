@@ -352,6 +352,10 @@ async def startup():
   ### initialize HTTP client
   from src.http_client import get_http_client
   await get_http_client()  # 預先建立 HTTP 會話
+  
+  ### initialize HTTP client
+  from src.http_client import get_http_client
+  await get_http_client()  # 預先建立 HTTP 會話
 
 @app.on_event("shutdown")
 async def shutdown():
