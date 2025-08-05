@@ -19,6 +19,8 @@ from src.invitation_code import generate_codes
 import src.config as config
 from src.notify import get_notifies
 from src.log import send_search_logging, send_performance_logging
+from src.performance_monitor import monitor_stage, log_performance_detailed_async
+from src.log import send_logging_async
 
 import os
 import json
@@ -106,28 +108,61 @@ async def gql(request: Request):
   '''
   Forward gql request by http method without cache.
   '''
-  start_time = datetime.now().timestamp()
-  gql_endpoint = os.environ['MESH_GQL_ENDPOINT']
-  acl_header, error_msg = middleware.check_story_acl(request)
-  if error_msg:
-    return JSONResponse(
-      status_code=status.HTTP_401_UNAUTHORIZED,
-      content={"message": f"{error_msg}"}
-    )
-  response, error_msg = await proxy.gql_proxy_raw(gql_endpoint, request, acl_header)
-  if error_msg:
-    return JSONResponse(
-      status_code=status.HTTP_400_BAD_REQUEST,
-      content={"message": f"{error_msg}"}
-    )
-  # log performance
-  end_time = datetime.now().timestamp()
-  send_performance_logging({
-    "endpoint": "POST: /gql",
-    "execute_time": end_time - start_time,
-    "data": await request.json(),
-  })
-  return dict(response)
+  from src.performance_monitor import PerformanceMonitor, log_performance_detailed_async, set_current_monitor
+  
+  # 建立效能監控器
+  monitor = PerformanceMonitor("POST: /gql")
+  monitor.start()
+  set_current_monitor(monitor)
+  
+  try:
+    gql_endpoint = os.environ['MESH_GQL_ENDPOINT']
+    
+    # 監控 ACL 檢查階段
+    async with monitor_stage(monitor, "acl_check"):
+      acl_header, error_msg = middleware.check_story_acl(request)
+      if error_msg:
+        return JSONResponse(
+          status_code=status.HTTP_401_UNAUTHORIZED,
+          content={"message": f"{error_msg}"}
+        )
+    
+    # 監控 GQL 代理階段
+    async with monitor_stage(monitor, "gql_proxy"):
+      response, error_msg = await proxy.gql_proxy_raw(gql_endpoint, request, acl_header)
+      if error_msg:
+        return JSONResponse(
+          status_code=status.HTTP_400_BAD_REQUEST,
+          content={"message": f"{error_msg}"}
+        )
+    
+    # 監控回應處理階段
+    async with monitor_stage(monitor, "response_handling"):
+      try:
+        request_data = await request.json()
+      except:
+        request_data = None
+      
+      # 記錄詳細效能資訊
+      monitor.end()
+      await log_performance_detailed_async(monitor)
+      
+      # 同時保留原本的簡化日誌（非同步）
+      await send_logging_async(
+        os.environ.get('PROJECT_ID'),
+        os.environ.get('LOG_NAME_PERFORMANCE', 'performance'),
+        {
+          "endpoint": "POST: /gql",
+          "execute_time": monitor.get_total_duration(),
+          "data": request_data,
+        }
+      )
+    
+    return dict(response)
+    
+  finally:
+    # 清理監控器
+    set_current_monitor(None)
 
 @app.post('/latest_stories')
 async def latest_stories(latestStories: LatestStories):

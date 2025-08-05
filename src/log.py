@@ -2,6 +2,12 @@ import google.cloud.logging as logging
 from src.request_body import Search
 import os
 
+import asyncio
+from concurrent.futures import ThreadPoolExecutor
+
+# 全域執行器用於非同步日誌記錄
+_log_executor = ThreadPoolExecutor(max_workers=4)
+
 def send_logging(projectId, logName, info: dict):
     ### writing log
     loggerName = f'projects/{projectId}/logs/{logName}'
@@ -9,6 +15,11 @@ def send_logging(projectId, logName, info: dict):
     logger = logging.Client().logger(loggerName)
     logger.log_struct(info = info, severity = "INFO", resource = resource, log_name = loggerName)
     print("Sended logging successed: ", info)
+
+async def send_logging_async(projectId, logName, info: dict):
+    """非同步版本的日誌記錄，避免阻塞主執行緒"""
+    loop = asyncio.get_event_loop()
+    await loop.run_in_executor(_log_executor, send_logging, projectId, logName, info)
     
 def send_search_logging(search: Search):
     try:

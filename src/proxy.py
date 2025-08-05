@@ -11,6 +11,7 @@ from datetime import datetime
 from fastapi import Request
 from src.log import send_performance_logging
 from starlette.datastructures import UploadFile
+from src.performance_monitor import monitor_stage
 
 def pubsub_proxy(payload, action_type: str='user_action'):
     if action_type == 'payment':
@@ -30,23 +31,61 @@ def pubsub_proxy(payload, action_type: str='user_action'):
     return response
 
 async def gql_proxy_raw(gql_endpoint: str, request: Request, acl_headers: dict):
+    import time
+    from src.performance_monitor import get_current_monitor
+    
     content_type = request.headers.get('Content-Type', '')
     json_data, error_message = None, None
+    
+    # 取得當前監控器
+    monitor = get_current_monitor()
+    
     try:
-      if 'multipart/form-data' in content_type:
-        form = await request.form()
-        data, files = {}, {}
-        for key, value in form.items():
-          if isinstance(value, UploadFile):
-            print("gql proxy with upload file")
-            files[key] = await value.read()
-          else:
-            data[key] = value
-        response = requests.post(gql_endpoint, data=data, files=files, headers=acl_headers, timeout=config.DEFAULT_GQL_EXEC_TIMEOUT)
+      # 監控請求準備階段
+      if monitor:
+          async with monitor_stage(monitor, "request_preparation"):
+              if 'multipart/form-data' in content_type:
+                  form = await request.form()
+                  data, files = {}, {}
+                  for key, value in form.items():
+                    if isinstance(value, UploadFile):
+                      print("gql proxy with upload file")
+                      files[key] = await value.read()
+                    else:
+                      data[key] = value
+              else:
+                  data = await request.json()
+      
+      # 監控網路請求階段
+      if monitor:
+          async with monitor_stage(monitor, "network_request"):
+              if 'multipart/form-data' in content_type:
+                  response = requests.post(gql_endpoint, data=data, files=files, headers=acl_headers, timeout=config.DEFAULT_GQL_EXEC_TIMEOUT)
+              else:
+                  response = requests.post(gql_endpoint, json=data, headers=acl_headers, timeout=config.DEFAULT_GQL_EXEC_TIMEOUT)
       else:
-        data = await request.json()
-        response = requests.post(gql_endpoint, json=data, headers=acl_headers, timeout=config.DEFAULT_GQL_EXEC_TIMEOUT)
-      json_data = response.json()
+          # 如果沒有監控器，使用原本的邏輯
+          if 'multipart/form-data' in content_type:
+              form = await request.form()
+              data, files = {}, {}
+              for key, value in form.items():
+                if isinstance(value, UploadFile):
+                  print("gql proxy with upload file")
+                  files[key] = await value.read()
+                else:
+                  data[key] = value
+              response = requests.post(gql_endpoint, data=data, files=files, headers=acl_headers, timeout=config.DEFAULT_GQL_EXEC_TIMEOUT)
+          else:
+              data = await request.json()
+              response = requests.post(gql_endpoint, json=data, headers=acl_headers, timeout=config.DEFAULT_GQL_EXEC_TIMEOUT)
+      
+      # 監控回應處理階段
+      if monitor:
+          async with monitor_stage(monitor, "response_processing"):
+              json_data = response.json()
+      else:
+          json_data = response.json()
+          
     except Exception as e:
       print("GQL query error:", e)
       error_message = e
