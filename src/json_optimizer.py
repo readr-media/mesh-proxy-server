@@ -17,22 +17,21 @@ class OptimizedJSONResponse(JSONResponse):
 
 def fast_json_dumps(obj: Any, **kwargs) -> str:
     """使用 orjson 進行快速 JSON 序列化，支援標準 json.dumps 參數"""
-    # 處理 orjson 不支援的參數
+    # 檢查是否有 orjson 不支援的參數
+    unsupported_params = ['indent', 'separators']
+    has_unsupported = any(param in kwargs for param in unsupported_params)
+    
+    # 如果 ensure_ascii=True，orjson 不支援，需要回退
+    if kwargs.get('ensure_ascii', True) is True:
+        has_unsupported = True
+    
+    # 如果有不支援的參數，回退到標準 json 模組
+    if has_unsupported:
+        import json as std_json
+        return std_json.dumps(obj, **kwargs)
+    
+    # 使用 orjson 進行快速序列化
     options = orjson.OPT_SERIALIZE_NUMPY | orjson.OPT_NAIVE_UTC | orjson.OPT_OMIT_MICROSECONDS
-    
-    # 處理 ensure_ascii 參數
-    if kwargs.get('ensure_ascii', True) is False:
-        options |= orjson.OPT_UNICODE_ESCAPE
-    
-    # 處理 indent 參數（orjson 不支援，但我們可以忽略）
-    if 'indent' in kwargs:
-        # orjson 不支援 indent，但我們可以忽略這個參數
-        pass
-    
-    # 處理 separators 參數（orjson 不支援，但我們可以忽略）
-    if 'separators' in kwargs:
-        # orjson 不支援自定義分隔符，但我們可以忽略這個參數
-        pass
     
     # 處理 sort_keys 參數
     if kwargs.get('sort_keys', False):
