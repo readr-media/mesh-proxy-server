@@ -33,6 +33,7 @@ def pubsub_proxy(payload, action_type: str='user_action'):
 async def gql_proxy_raw(gql_endpoint: str, request: Request, acl_headers: dict):
     import time
     from src.performance_monitor import get_current_monitor
+    from src.http_client import get_http_client
     
     content_type = request.headers.get('Content-Type', '')
     json_data, error_message = None, None
@@ -59,10 +60,11 @@ async def gql_proxy_raw(gql_endpoint: str, request: Request, acl_headers: dict):
       # 監控網路請求階段
       if monitor:
           async with monitor_stage(monitor, "network_request"):
+              http_client = await get_http_client()
               if 'multipart/form-data' in content_type:
-                  response = requests.post(gql_endpoint, data=data, files=files, headers=acl_headers, timeout=config.DEFAULT_GQL_EXEC_TIMEOUT)
+                  json_data = await http_client.post_form(gql_endpoint, data, files, acl_headers)
               else:
-                  response = requests.post(gql_endpoint, json=data, headers=acl_headers, timeout=config.DEFAULT_GQL_EXEC_TIMEOUT)
+                  json_data = await http_client.post_json(gql_endpoint, data, acl_headers)
       else:
           # 如果沒有監控器，使用原本的邏輯
           if 'multipart/form-data' in content_type:
@@ -74,17 +76,18 @@ async def gql_proxy_raw(gql_endpoint: str, request: Request, acl_headers: dict):
                   files[key] = await value.read()
                 else:
                   data[key] = value
-              response = requests.post(gql_endpoint, data=data, files=files, headers=acl_headers, timeout=config.DEFAULT_GQL_EXEC_TIMEOUT)
+              http_client = await get_http_client()
+              json_data = await http_client.post_form(gql_endpoint, data, files, acl_headers)
           else:
               data = await request.json()
-              response = requests.post(gql_endpoint, json=data, headers=acl_headers, timeout=config.DEFAULT_GQL_EXEC_TIMEOUT)
+              http_client = await get_http_client()
+              json_data = await http_client.post_json(gql_endpoint, data, acl_headers)
       
       # 監控回應處理階段
       if monitor:
           async with monitor_stage(monitor, "response_processing"):
-              json_data = response.json()
-      else:
-          json_data = response.json()
+              # 回應已經在網路請求階段處理了
+              pass
           
     except Exception as e:
       print("GQL query error:", e)
