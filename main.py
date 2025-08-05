@@ -182,90 +182,201 @@ async def latest_stories(latestStories: LatestStories):
 
 @app.post('/search')
 async def search_post(search: Search):
-  start_time = datetime.now().timestamp()
-  search_text, objectives = search.text, search.objectives
-  related_data = {}
+  from src.performance_monitor import PerformanceMonitor, log_performance_detailed_async, set_current_monitor
   
-  ### search from meilisearch
-  client = search_api.connect_meilisearch()
-  if "story" in objectives:
-    related_data["story"] = await search_api.search_related_stories(client, search_text)
-  if "collection" in objectives:
-    related_data["collection"] = search_api.search_related_collections(client, search_text)
-  if "member" in objectives:
-    related_data["member"] = search_api.search_related_members(client, search_text)
-  if "publisher" in objectives:
-    related_data["publisher"] = search_api.search_related_publishers(client, search_text)
+  # 建立效能監控器
+  monitor = PerformanceMonitor("POST: /search")
+  monitor.start()
+  set_current_monitor(monitor)
   
-  # cloud logging
-  end_time = datetime.now().timestamp()
-  send_search_logging(search)
-  send_performance_logging({
-    "endpoint": "POST: /search",
-    "execute_time": end_time - start_time,
-    "data": search.model_dump(),
-  })
-  return related_data
+  try:
+    search_text, objectives = search.text, search.objectives
+    related_data = {}
+    
+    # 監控搜尋處理階段
+    async with monitor_stage(monitor, "search_processing"):
+      ### search from meilisearch
+      from src.search_optimized import connect_meilisearch, search_related_stories, search_related_collections, search_related_members, search_related_publishers
+      client = connect_meilisearch()
+      
+      if "story" in objectives:
+        related_data["story"] = await search_related_stories(client, search_text)
+      if "collection" in objectives:
+        related_data["collection"] = await search_related_collections(client, search_text)
+      if "member" in objectives:
+        related_data["member"] = await search_related_members(client, search_text)
+      if "publisher" in objectives:
+        related_data["publisher"] = await search_related_publishers(client, search_text)
+    
+    # 監控回應處理階段
+    async with monitor_stage(monitor, "response_handling"):
+      # 記錄詳細效能資訊
+      monitor.end()
+      await log_performance_detailed_async(monitor)
+      
+      # 同時保留原本的簡化日誌（非同步）
+      await send_logging_async(
+        os.environ.get('PROJECT_ID'),
+        os.environ.get('LOG_NAME_PERFORMANCE', 'performance'),
+        {
+          "endpoint": "POST: /search",
+          "execute_time": monitor.get_total_duration(),
+          "data": search.model_dump(),
+        }
+      )
+      
+      # cloud logging
+      send_search_logging(search)
+    
+    return related_data
+    
+  finally:
+    # 清理監控器
+    set_current_monitor(None)
 
 @app.post('/socialpage')
 async def socialpage_pagination(socialPage: SocialPage):
   '''
   Given member_id, return social_page based on index and take
   '''
-  start_time = datetime.now().timestamp()
-  mongo_url = os.environ['MONGO_URL']
-  member_id = socialPage.member_id
-  index     = socialPage.index
-  take      = socialPage.take
-  socialpage = await getSocialPage(mongo_url=mongo_url, member_id=member_id, index=index, take=take)
+  from src.performance_monitor import PerformanceMonitor, log_performance_detailed_async, set_current_monitor
   
-  # log performance
-  end_time = datetime.now().timestamp()
-  send_performance_logging({
-    "endpoint": "POST: /socialpage",
-    "execute_time": end_time - start_time,
-    "data": socialPage.model_dump(),
-  })
-  return socialpage
+  # 建立效能監控器
+  monitor = PerformanceMonitor("POST: /socialpage")
+  monitor.start()
+  set_current_monitor(monitor)
+  
+  try:
+    mongo_url = os.environ['MONGO_URL']
+    member_id = socialPage.member_id
+    index     = socialPage.index
+    take      = socialPage.take
+    
+    # 監控社交頁面處理階段
+    async with monitor_stage(monitor, "socialpage_processing"):
+      from src.socialpage_optimized import getSocialPage_optimized
+      socialpage = await getSocialPage_optimized(mongo_url=mongo_url, member_id=member_id, index=index, take=take)
+    
+    # 監控回應處理階段
+    async with monitor_stage(monitor, "response_handling"):
+      # 記錄詳細效能資訊
+      monitor.end()
+      await log_performance_detailed_async(monitor)
+      
+      # 同時保留原本的簡化日誌（非同步）
+      await send_logging_async(
+        os.environ.get('PROJECT_ID'),
+        os.environ.get('LOG_NAME_PERFORMANCE', 'performance'),
+        {
+          "endpoint": "POST: /socialpage",
+          "execute_time": monitor.get_total_duration(),
+          "data": socialPage.model_dump(),
+        }
+      )
+    
+    return socialpage
+    
+  finally:
+    # 清理監控器
+    set_current_monitor(None)
 
 @app.post('/invitation_codes/{num_codes}')
 async def generate_invitation_codes(
     request: Request, 
     num_codes: Annotated[int, Path(title="Number of codes to be generated", ge=1)]
   ):
-  uid, error_msg = middleware.verify_token(request)
-  if error_msg:
-    return JSONResponse(
-      status_code = error_msg['status_code'],
-      content = {"message": error_msg['content']}
-    )
-  codes, error_msg = generate_codes(uid, num_codes)
-  if error_msg:
-    return JSONResponse(
-      status_code = error_msg['status_code'],
-      content = {"message": error_msg['content']}
-    )
-  return codes
+  from src.performance_monitor import PerformanceMonitor, log_performance_detailed_async, set_current_monitor
+  
+  # 建立效能監控器
+  monitor = PerformanceMonitor("POST: /invitation_codes")
+  monitor.start()
+  set_current_monitor(monitor)
+  
+  try:
+    # 監控 token 驗證階段
+    async with monitor_stage(monitor, "token_verification"):
+      uid, error_msg = middleware.verify_token(request)
+      if error_msg:
+        return JSONResponse(
+          status_code = error_msg['status_code'],
+          content = {"message": error_msg['content']}
+        )
+    
+    # 監控邀請碼生成階段
+    async with monitor_stage(monitor, "invitation_code_generation"):
+      from src.invitation_code_optimized import generate_codes_optimized
+      codes, error_msg = await generate_codes_optimized(uid, num_codes)
+      if error_msg:
+        return JSONResponse(
+          status_code = error_msg['status_code'],
+          content = {"message": error_msg['content']}
+        )
+    
+    # 監控回應處理階段
+    async with monitor_stage(monitor, "response_handling"):
+      # 記錄詳細效能資訊
+      monitor.end()
+      await log_performance_detailed_async(monitor)
+      
+      # 同時保留原本的簡化日誌（非同步）
+      await send_logging_async(
+        os.environ.get('PROJECT_ID'),
+        os.environ.get('LOG_NAME_PERFORMANCE', 'performance'),
+        {
+          "endpoint": "POST: /invitation_codes",
+          "execute_time": monitor.get_total_duration(),
+          "data": {"num_codes": num_codes},
+        }
+      )
+    
+    return codes
+    
+  finally:
+    # 清理監控器
+    set_current_monitor(None)
 
 @app.post('/notifications')
 async def notifications(request: Notification):
-  start_time = datetime.now().timestamp()
-  mongo_url = os.environ['MONGO_URL']
-  memberId = request.member_id
-  index = request.index
-  take = request.take
+  from src.performance_monitor import PerformanceMonitor, log_performance_detailed_async, set_current_monitor
   
-  db = connect_db(mongo_url, os.environ.get('ENV', 'dev'))
-  notifies = get_notifies(db=db, memberId=memberId, index=index, take=take)
+  # 建立效能監控器
+  monitor = PerformanceMonitor("POST: /notifications")
+  monitor.start()
+  set_current_monitor(monitor)
   
-  # log performance
-  end_time = datetime.now().timestamp()
-  send_performance_logging({
-    "endpoint": "POST: /notifications",
-    "execute_time": end_time - start_time,
-    "data": request.model_dump(),
-  })
-  return notifies
+  try:
+    mongo_url = os.environ['MONGO_URL']
+    memberId = request.member_id
+    index = request.index
+    take = request.take
+    
+    # 監控通知處理階段
+    async with monitor_stage(monitor, "notification_processing"):
+      from src.notify_optimized import get_notifies_optimized
+      notifies = await get_notifies_optimized(mongo_url, memberId, index, take)
+    
+    # 監控回應處理階段
+    async with monitor_stage(monitor, "response_handling"):
+      # 記錄詳細效能資訊
+      monitor.end()
+      await log_performance_detailed_async(monitor)
+      
+      # 同時保留原本的簡化日誌（非同步）
+      await send_logging_async(
+        os.environ.get('PROJECT_ID'),
+        os.environ.get('LOG_NAME_PERFORMANCE', 'performance'),
+        {
+          "endpoint": "POST: /notifications",
+          "execute_time": monitor.get_total_duration(),
+          "data": request.model_dump(),
+        }
+      )
+    
+    return notifies
+    
+  finally:
+    # 清理監控器
+    set_current_monitor(None)
 
 @app.options('/media/cookie/{publisherId}')
 async def preflight_media_cookie(origin: Annotated[str | None, Header()] = None):
@@ -304,7 +415,8 @@ async def media_cookie(
     )
   
   # check publisher admin
-  publisher = middleware.check_publisher_admin(gql_endpoint, publisherId, firebaseId)
+  from src.middleware_optimized import check_publisher_admin_optimized
+  publisher = await check_publisher_admin_optimized(publisherId, firebaseId)
   if publisher==None or ("customId" not in publisher):
     return JSONResponse(
       status_code = status.HTTP_401_UNAUTHORIZED,
@@ -352,9 +464,18 @@ async def startup():
   ### initialize HTTP client
   from src.http_client import get_http_client
   await get_http_client()  # 預先建立 HTTP 會話
+  
+  ### initialize MongoDB client
+  from src.mongo_client import get_mongo_manager
+  mongo_manager = get_mongo_manager()
+  mongo_manager.get_sync_client(os.environ.get('MONGO_URL', 'mongodb://localhost:27017'))
 
 @app.on_event("shutdown")
 async def shutdown():
   ### close HTTP client
   from src.http_client import close_http_client
   await close_http_client()
+  
+  ### close MongoDB client
+  from src.mongo_client import close_mongo_manager
+  await close_mongo_manager()
