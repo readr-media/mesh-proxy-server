@@ -2,6 +2,8 @@ import time
 import asyncio
 from datetime import datetime
 from typing import Dict, Any, Optional
+# 確保 JSON 優化生效
+import src.json_optimizer
 import json
 import os
 from contextlib import asynccontextmanager

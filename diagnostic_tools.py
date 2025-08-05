@@ -7,6 +7,8 @@
 import json
 import time
 import asyncio
+# 確保 JSON 優化生效
+import src.json_optimizer
 import aiohttp
 from datetime import datetime, timedelta
 from typing import Dict, List, Any

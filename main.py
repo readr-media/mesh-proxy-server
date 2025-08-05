@@ -8,6 +8,9 @@ from src.backend.redis import RedisBackendExtend
 from redis import asyncio as aioredis
 from typing import Annotated
 
+# 確保 JSON 優化在應用啟動時生效
+import src.json_optimizer
+
 from src.request_body import LatestStories, SocialPage, Search, Notification
 import src.auth as Authentication
 import src.proxy as proxy

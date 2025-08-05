@@ -1,6 +1,8 @@
 import aiohttp
 import asyncio
 from typing import Optional, Dict, Any
+# 確保 JSON 優化生效
+import src.json_optimizer
 import json
 import os
 

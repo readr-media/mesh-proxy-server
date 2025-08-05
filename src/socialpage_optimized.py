@@ -6,6 +6,8 @@ from src.tool import get_isoformat_time, key_builder
 from datetime import datetime
 from fastapi_cache import FastAPICache
 from src.cache import get_cache, set_cache
+# 確保 JSON 優化生效
+import src.json_optimizer
 import json
 from src.mongo_client import get_mongo_manager
 from src.error_handler import ErrorHandler

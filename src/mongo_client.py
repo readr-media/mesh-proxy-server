@@ -24,31 +24,51 @@ class MongoManager:
             self._mongo_url = mongo_url
             self._env = env
             
-            # 建立非同步客戶端（使用 motor）
-            self._async_client = motor.motor_asyncio.AsyncIOMotorClient(
-                mongo_url,
-                maxPoolSize=50,  # 連接池大小
-                minPoolSize=10,  # 最小連接數
-                maxIdleTimeMS=30000,  # 最大空閒時間
-                waitQueueTimeoutMS=5000,  # 等待隊列超時
-                serverSelectionTimeoutMS=5000,  # 服務器選擇超時
-                connectTimeoutMS=10000,  # 連接超時
-                socketTimeoutMS=30000,  # Socket 超時
-            )
-            
-            # 建立同步客戶端（用於向後相容）
-            self._sync_client = pymongo.MongoClient(
-                mongo_url,
-                maxPoolSize=50,
-                minPoolSize=10,
-                maxIdleTimeMS=30000,
-                waitQueueTimeoutMS=5000,
-                serverSelectionTimeoutMS=5000,
-                connectTimeoutMS=10000,
-                socketTimeoutMS=30000,
-            )
-            
-            print(f"MongoDB 連接池已初始化 - 環境: {env}")
+            try:
+                # 建立非同步客戶端（使用 motor）
+                self._async_client = motor.motor_asyncio.AsyncIOMotorClient(
+                    mongo_url,
+                    maxPoolSize=20,  # 降低連接池大小，避免過度配置
+                    minPoolSize=5,   # 降低最小連接數
+                    maxIdleTimeMS=60000,  # 增加空閒時間
+                    waitQueueTimeoutMS=10000,  # 增加等待隊列超時
+                    serverSelectionTimeoutMS=10000,  # 增加服務器選擇超時
+                    connectTimeoutMS=15000,  # 增加連接超時
+                    socketTimeoutMS=45000,  # 增加 Socket 超時
+                    retryWrites=True,  # 啟用重試寫入
+                    retryReads=True,   # 啟用重試讀取
+                )
+                
+                # 建立同步客戶端（用於向後相容）
+                self._sync_client = pymongo.MongoClient(
+                    mongo_url,
+                    maxPoolSize=20,
+                    minPoolSize=5,
+                    maxIdleTimeMS=60000,
+                    waitQueueTimeoutMS=10000,
+                    serverSelectionTimeoutMS=10000,
+                    connectTimeoutMS=15000,
+                    socketTimeoutMS=45000,
+                    retryWrites=True,
+                    retryReads=True,
+                )
+                
+                # 測試連接
+                await self._async_client.admin.command('ping')
+                
+                print(f"✅ MongoDB 連接池已初始化 - 環境: {env}")
+                
+            except Exception as e:
+                # 清理失敗的連接
+                if self._async_client:
+                    self._async_client.close()
+                    self._async_client = None
+                if self._sync_client:
+                    self._sync_client.close()
+                    self._sync_client = None
+                
+                print(f"❌ MongoDB 連接初始化失敗: {e}")
+                raise RuntimeError(f"MongoDB 連接失敗: {e}")
     
     def get_async_client(self) -> motor.motor_asyncio.AsyncIOMotorClient:
         """取得非同步 MongoDB 客戶端"""
@@ -120,20 +140,30 @@ async def close_mongo():
 # 向後相容的函數
 def connect_db(mongo_url: str, env: str = 'dev'):
     """向後相容的同步連接函數"""
-    client = pymongo.MongoClient(
-        mongo_url,
-        maxPoolSize=50,
-        minPoolSize=10,
-        maxIdleTimeMS=30000,
-        waitQueueTimeoutMS=5000,
-        serverSelectionTimeoutMS=5000,
-        connectTimeoutMS=10000,
-        socketTimeoutMS=30000,
-    )
-    
-    if env == 'staging':
-        return client.staging
-    elif env == 'prod':
-        return client.prod
-    else:
-        return client.dev 
+    try:
+        client = pymongo.MongoClient(
+            mongo_url,
+            maxPoolSize=20,
+            minPoolSize=5,
+            maxIdleTimeMS=60000,
+            waitQueueTimeoutMS=10000,
+            serverSelectionTimeoutMS=10000,
+            connectTimeoutMS=15000,
+            socketTimeoutMS=45000,
+            retryWrites=True,
+            retryReads=True,
+        )
+        
+        # 測試連接
+        client.admin.command('ping')
+        
+        if env == 'staging':
+            return client.staging
+        elif env == 'prod':
+            return client.prod
+        else:
+            return client.dev
+            
+    except Exception as e:
+        print(f"❌ 同步 MongoDB 連接失敗: {e}")
+        raise RuntimeError(f"MongoDB 連接失敗: {e}") 
