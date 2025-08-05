@@ -19,8 +19,8 @@ from src.invitation_code import generate_codes
 import src.config as config
 from src.notify import get_notifies
 from src.log import send_search_logging, send_performance_logging
-  from src.performance_monitor import monitor_stage, log_performance_detailed_async
-  from src.log import send_logging_async
+from src.performance_monitor import monitor_stage, log_performance_detailed_async
+from src.log import send_logging_async
 
 import os
 import json
@@ -108,7 +108,7 @@ async def gql(request: Request):
   '''
   Forward gql request by http method without cache.
   '''
-  from src.performance_monitor import PerformanceMonitor, log_performance_detailed, set_current_monitor
+  from src.performance_monitor import PerformanceMonitor, log_performance_detailed_async, set_current_monitor
   
   # 建立效能監控器
   monitor = PerformanceMonitor("POST: /gql")
@@ -119,7 +119,7 @@ async def gql(request: Request):
     gql_endpoint = os.environ['MESH_GQL_ENDPOINT']
     
     # 監控 ACL 檢查階段
-    with monitor_stage(monitor, "acl_check"):
+    async with monitor_stage(monitor, "acl_check"):
       acl_header, error_msg = middleware.check_story_acl(request)
       if error_msg:
         return JSONResponse(
@@ -128,7 +128,7 @@ async def gql(request: Request):
         )
     
     # 監控 GQL 代理階段
-    with monitor_stage(monitor, "gql_proxy"):
+    async with monitor_stage(monitor, "gql_proxy"):
       response, error_msg = await proxy.gql_proxy_raw(gql_endpoint, request, acl_header)
       if error_msg:
         return JSONResponse(
@@ -137,7 +137,7 @@ async def gql(request: Request):
         )
     
     # 監控回應處理階段
-    with monitor_stage(monitor, "response_handling"):
+    async with monitor_stage(monitor, "response_handling"):
       try:
         request_data = await request.json()
       except:

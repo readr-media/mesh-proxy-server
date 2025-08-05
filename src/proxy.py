@@ -43,7 +43,7 @@ async def gql_proxy_raw(gql_endpoint: str, request: Request, acl_headers: dict):
     try:
       # 監控請求準備階段
       if monitor:
-          with monitor_stage(monitor, "request_preparation"):
+          async with monitor_stage(monitor, "request_preparation"):
               if 'multipart/form-data' in content_type:
                   form = await request.form()
                   data, files = {}, {}
@@ -58,7 +58,7 @@ async def gql_proxy_raw(gql_endpoint: str, request: Request, acl_headers: dict):
       
       # 監控網路請求階段
       if monitor:
-          with monitor_stage(monitor, "network_request"):
+          async with monitor_stage(monitor, "network_request"):
               if 'multipart/form-data' in content_type:
                   response = requests.post(gql_endpoint, data=data, files=files, headers=acl_headers, timeout=config.DEFAULT_GQL_EXEC_TIMEOUT)
               else:
@@ -81,7 +81,7 @@ async def gql_proxy_raw(gql_endpoint: str, request: Request, acl_headers: dict):
       
       # 監控回應處理階段
       if monitor:
-          with monitor_stage(monitor, "response_processing"):
+          async with monitor_stage(monitor, "response_processing"):
               json_data = response.json()
       else:
           json_data = response.json()

@@ -63,54 +63,59 @@ def check_story_acl(request: Request):
     
     # 監控 JWT 解碼階段
     if monitor:
-        with monitor_stage(monitor, "jwt_decoding"):
-            ### check the existence of Authroization header, which is jwt_token
-            bearer_token = request.headers.get("Authorization", None)
-            jwt_token = extract_bearer_token(bearer_token)
-            if jwt_token==None:
-                return acl_header, None
+        # 手動計時，因為這是同步函數
+        jwt_start = time.time()
+        ### check the existence of Authroization header, which is jwt_token
+        bearer_token = request.headers.get("Authorization", None)
+        jwt_token = extract_bearer_token(bearer_token)
+        if jwt_token==None:
+            monitor.add_stage("jwt_decoding", time.time() - jwt_start)
+            return acl_header, None
 
-            try:
-                ### check the content in the jwt_token
-                # jwt.decode will return error code automatically if there is any invalid data in jwt_token
-                payload = jwt.decode(jwt_token, os.environ['JWT_SECRET'], algorithms='HS256')
-                scope = payload['scope']
-                
-                # 監控 ACL 處理階段
-                with monitor_stage(monitor, "acl_processing"):
-                    # wrap acl header
-                    if scope == 'all':
-                        acl_header = {
-                            "x-access-token-scope": "mesh:member-stories:all"
-                        }
-                    else:
-                        # filter out expired media
-                        mediaArr = payload.get('media', [])
-                        mediaArr_filtered = set()
-                        for media in mediaArr:
-                            media_id, media_expireDate = media
-                            if media_expireDate < unix_current:
-                                continue
-                            mediaArr_filtered.add(media_id)
-                        mediaArr_str = ','.join(list(mediaArr_filtered))
-                        # filter out expired story
-                        storyArr = payload.get('story', [])
-                        storyArr_filtered = set()
-                        for story in storyArr:
-                            story_id, story_expireDate = story
-                            if story_expireDate < unix_current:
-                                continue
-                            storyArr_filtered.add(story_id)
-                        storyArr_str = ','.join(list(storyArr_filtered))
-                        # wrap acl header
-                        acl_header = {
-                            "x-access-token-scope": "mesh:member-stories:media",
-                            "x-access-token-media": mediaArr_str,
-                            "x-access-token-story": storyArr_str,
-                        }
-            except Exception as e:
-                print("middleware_story_acl error: ", e)
-                return acl_header, None
+        try:
+            ### check the content in the jwt_token
+            # jwt.decode will return error code automatically if there is any invalid data in jwt_token
+            payload = jwt.decode(jwt_token, os.environ['JWT_SECRET'], algorithms='HS256')
+            scope = payload['scope']
+            monitor.add_stage("jwt_decoding", time.time() - jwt_start)
+            
+            # 監控 ACL 處理階段
+            acl_start = time.time()
+            # wrap acl header
+            if scope == 'all':
+                acl_header = {
+                    "x-access-token-scope": "mesh:member-stories:all"
+                }
+            else:
+                # filter out expired media
+                mediaArr = payload.get('media', [])
+                mediaArr_filtered = set()
+                for media in mediaArr:
+                    media_id, media_expireDate = media
+                    if media_expireDate < unix_current:
+                        continue
+                    mediaArr_filtered.add(media_id)
+                mediaArr_str = ','.join(list(mediaArr_filtered))
+                # filter out expired story
+                storyArr = payload.get('story', [])
+                storyArr_filtered = set()
+                for story in storyArr:
+                    story_id, story_expireDate = story
+                    if story_expireDate < unix_current:
+                        continue
+                    storyArr_filtered.add(story_id)
+                storyArr_str = ','.join(list(storyArr_filtered))
+                # wrap acl header
+                acl_header = {
+                    "x-access-token-scope": "mesh:member-stories:media",
+                    "x-access-token-media": mediaArr_str,
+                    "x-access-token-story": storyArr_str,
+                }
+            monitor.add_stage("acl_processing", time.time() - acl_start)
+        except Exception as e:
+            print("middleware_story_acl error: ", e)
+            monitor.add_stage("jwt_decoding", time.time() - jwt_start)
+            return acl_header, None
     else:
         # 如果沒有監控器，使用原本的邏輯
         ### check the existence of Authroization header, which is jwt_token
