@@ -7,9 +7,9 @@ import random
 from datetime import datetime
 from typing import Dict, List, Any
 from src.mongo_client import get_mongo_manager
-from src.cache import get_cache, set_cache
-from src.tool import key_builder
-from fastapi_cache import FastAPICache
+# from src.cache import get_cache, set_cache
+# from src.tool import key_builder
+# from fastapi_cache import FastAPICache
 from src.performance_monitor import monitor_stage
 
 gql_all_publishers = '''
@@ -31,16 +31,7 @@ async def getSocialPage_optimized(mongo_url: str, member_id: str, index: int = 0
     from src.performance_monitor import get_current_monitor
     monitor = get_current_monitor()
     
-    ### check cached data
-    prefix = FastAPICache.get_prefix()
-    cache_key = key_builder(f"{prefix}", f"socialpage:{member_id}")
-    _, cached_data = await get_cache(cache_key)
-    
-    if cached_data:
-        if monitor:
-            monitor.add_stage("socialpage_cache_hit", 0.001)
-        social_page = json.loads(cached_data)
-    else:
+    # 移除快取檢查，直接執行查詢邏輯
         social_stories, social_members = [], []
         
         # 監控 GQL 查詢階段
@@ -234,15 +225,12 @@ async def getSocialPage_optimized(mongo_url: str, member_id: str, index: int = 0
                     if story:
                         social_stories.append(story)
         
-        # 監控快取設定階段
-        if monitor:
-            async with monitor_stage(monitor, "cache_setting"):
-                social_page = {
-                    "timestamp": int(datetime.now().timestamp()),
-                    "stories": social_stories,
-                    "members": social_members
-                }
-                await set_cache(cache_key, json.dumps(social_page), config.SOCIALPAGE_CACHE_TIME)
+        # 直接建立回應，不使用快取
+        social_page = {
+            "timestamp": int(datetime.now().timestamp()),
+            "stories": social_stories,
+            "members": social_members
+        }
     
     # support pagination
     if (index>=0) and (take>0):
