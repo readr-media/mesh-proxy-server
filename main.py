@@ -213,11 +213,13 @@ async def socialpage_pagination(socialPage: SocialPage):
   Given member_id, return social_page based on index and take
   '''
   start_time = datetime.now().timestamp()
-  mongo_url = os.environ['MONGO_URL']
   member_id = socialPage.member_id
   index     = socialPage.index
   take      = socialPage.take
-  socialpage = await getSocialPage(mongo_url=mongo_url, member_id=member_id, index=index, take=take)
+  
+  # 使用優化的社交頁面函數
+  from src.socialpage_optimized import getSocialPage_optimized
+  socialpage = await getSocialPage_optimized(member_id=member_id, index=index, take=take)
   
   # log performance
   end_time = datetime.now().timestamp()
@@ -250,13 +252,13 @@ async def generate_invitation_codes(
 @app.post('/notifications')
 async def notifications(request: Notification):
   start_time = datetime.now().timestamp()
-  mongo_url = os.environ['MONGO_URL']
   memberId = request.member_id
   index = request.index
   take = request.take
   
-  db = connect_db(mongo_url, os.environ.get('ENV', 'dev'))
-  notifies = get_notifies(db=db, memberId=memberId, index=index, take=take)
+  # 使用優化的通知函數
+  from src.notify_optimized import get_notifies_optimized
+  notifies = await get_notifies_optimized(memberId=memberId, index=index, take=take)
   
   # log performance
   end_time = datetime.now().timestamp()
@@ -353,6 +355,12 @@ async def startup():
   from src.http_client import get_http_client
   await get_http_client()  # 預先建立 HTTP 會話
   
+  ### initialize MongoDB connection pool
+  from src.mongo_client import initialize_mongo
+  mongo_url = os.environ.get('MONGO_URL', 'mongodb://localhost:27017')
+  env = os.environ.get('ENV', 'dev')
+  await initialize_mongo(mongo_url, env)
+  
   ### initialize HTTP client
   from src.http_client import get_http_client
   await get_http_client()  # 預先建立 HTTP 會話
@@ -362,3 +370,7 @@ async def shutdown():
   ### close HTTP client
   from src.http_client import close_http_client
   await close_http_client()
+  
+  ### close MongoDB connections
+  from src.mongo_client import close_mongo
+  await close_mongo()
