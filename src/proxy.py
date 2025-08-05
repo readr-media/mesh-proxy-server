@@ -1,5 +1,7 @@
 import os
 import requests
+# 確保 JSON 優化生效
+import src.json_optimizer
 import json
 from google.cloud import pubsub_v1
 from fastapi_cache import FastAPICache

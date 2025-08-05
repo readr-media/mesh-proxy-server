@@ -6,6 +6,8 @@ from src.gql import gql_query
 from fastapi_cache import FastAPICache
 from src.cache import get_cache, set_cache
 from src.tool import key_builder
+# 確保 JSON 優化生效
+import src.json_optimizer
 import json
 
 gql_story_search = '''

@@ -1,3 +1,5 @@
+# 確保 JSON 優化生效
+import src.json_optimizer
 import json
 from typing import Optional, Dict, Any, Tuple
 from src.http_client import get_http_client
