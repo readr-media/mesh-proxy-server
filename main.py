@@ -35,6 +35,24 @@ bearer_scheme = HTTPBearer(auto_error=False)
 async def health_checking():
   return dict(message="Health check for mesh-proxy-server")
 
+@app.get('/diagnostic')
+async def diagnostic():
+  """
+  診斷端點，用於檢查 MongoDB 連接和資料獲取狀態
+  """
+  from src.diagnostic_middleware import DiagnosticMiddleware
+  result = await DiagnosticMiddleware.run_full_diagnostic()
+  return result
+
+@app.get('/diagnostic/mongo')
+async def diagnostic_mongo():
+  """
+  僅檢查 MongoDB 連接狀態
+  """
+  from src.diagnostic_middleware import DiagnosticMiddleware
+  result = await DiagnosticMiddleware.check_mongo_connection()
+  return result
+
 @app.post('/accesstoken')
 async def accesstoken(request: Request):
   start_time = datetime.now().timestamp()
@@ -217,18 +235,45 @@ async def socialpage_pagination(socialPage: SocialPage):
   index     = socialPage.index
   take      = socialPage.take
   
-  # 使用優化的社交頁面函數
-  from src.socialpage_optimized import getSocialPage_optimized
-  socialpage = await getSocialPage_optimized(member_id=member_id, index=index, take=take)
-  
-  # log performance
-  end_time = datetime.now().timestamp()
-  send_performance_logging({
-    "endpoint": "POST: /socialpage",
-    "execute_time": end_time - start_time,
-    "data": socialPage.model_dump(),
-  })
-  return socialpage
+  try:
+    # 使用優化的社交頁面函數
+    from src.socialpage_optimized import getSocialPage_optimized
+    socialpage = await getSocialPage_optimized(member_id=member_id, index=index, take=take)
+    
+    # log performance
+    end_time = datetime.now().timestamp()
+    send_performance_logging({
+      "endpoint": "POST: /socialpage",
+      "execute_time": end_time - start_time,
+      "data": socialPage.model_dump(),
+    })
+    return socialpage
+    
+  except Exception as e:
+    # 記錄錯誤並返回診斷信息
+    error_msg = f"社交頁面獲取失敗: {str(e)}"
+    print(error_msg)
+    
+    # 嘗試提供診斷信息
+    try:
+      from src.diagnostic_middleware import DiagnosticMiddleware
+      mongo_status = await DiagnosticMiddleware.check_mongo_connection()
+      return JSONResponse(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        content={
+          "error": error_msg,
+          "diagnostic": {
+            "mongo_connection": mongo_status,
+            "member_id": member_id,
+            "suggestion": "請檢查 /diagnostic 端點獲取詳細診斷信息"
+          }
+        }
+      )
+    except:
+      return JSONResponse(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        content={"error": error_msg}
+      )
 
 @app.post('/invitation_codes/{num_codes}')
 async def generate_invitation_codes(
@@ -256,18 +301,45 @@ async def notifications(request: Notification):
   index = request.index
   take = request.take
   
-  # 使用優化的通知函數
-  from src.notify_optimized import get_notifies_optimized
-  notifies = await get_notifies_optimized(memberId=memberId, index=index, take=take)
-  
-  # log performance
-  end_time = datetime.now().timestamp()
-  send_performance_logging({
-    "endpoint": "POST: /notifications",
-    "execute_time": end_time - start_time,
-    "data": request.model_dump(),
-  })
-  return notifies
+  try:
+    # 使用優化的通知函數
+    from src.notify_optimized import get_notifies_optimized
+    notifies = await get_notifies_optimized(memberId=memberId, index=index, take=take)
+    
+    # log performance
+    end_time = datetime.now().timestamp()
+    send_performance_logging({
+      "endpoint": "POST: /notifications",
+      "execute_time": end_time - start_time,
+      "data": request.model_dump(),
+    })
+    return notifies
+    
+  except Exception as e:
+    # 記錄錯誤並返回診斷信息
+    error_msg = f"通知獲取失敗: {str(e)}"
+    print(error_msg)
+    
+    # 嘗試提供診斷信息
+    try:
+      from src.diagnostic_middleware import DiagnosticMiddleware
+      mongo_status = await DiagnosticMiddleware.check_mongo_connection()
+      return JSONResponse(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        content={
+          "error": error_msg,
+          "diagnostic": {
+            "mongo_connection": mongo_status,
+            "member_id": memberId,
+            "suggestion": "請檢查 /diagnostic 端點獲取詳細診斷信息"
+          }
+        }
+      )
+    except:
+      return JSONResponse(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        content={"error": error_msg}
+      )
 
 @app.options('/media/cookie/{publisherId}')
 async def preflight_media_cookie(origin: Annotated[str | None, Header()] = None):
