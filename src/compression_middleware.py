@@ -1,6 +1,8 @@
 import gzip
 import json
 from typing import Any, Dict
+# 確保 JSON 優化生效
+import src.json_optimizer
 from fastapi import Request, Response
 from fastapi.responses import JSONResponse
 from src.json_optimizer import fast_json_dumps

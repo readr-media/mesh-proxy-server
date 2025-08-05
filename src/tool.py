@@ -1,6 +1,8 @@
 import json
 import os
 import hashlib
+# 確保 JSON 優化生效
+import src.json_optimizer
 import re
 from datetime import datetime, timezone
 from google.cloud import storage

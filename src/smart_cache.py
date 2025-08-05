@@ -1,6 +1,8 @@
 import hashlib
 import json
 import time
+# 確保 JSON 優化生效
+import src.json_optimizer
 from typing import Any, Dict, Optional, List
 from functools import wraps
 import asyncio
