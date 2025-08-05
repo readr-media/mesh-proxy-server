@@ -4,6 +4,8 @@
 
 我們已經將診斷工具整合到應用中，可以幫助你快速識別和解決 MongoDB 連接池優化後可能出現的問題。
 
+**特別功能：** 即使沒有 MongoDB 連接，診斷工具也會自動使用模擬資料進行測試，讓你可以驗證診斷邏輯是否正確。
+
 ## 診斷端點
 
 ### 1. 完整診斷端點
@@ -18,7 +20,7 @@ GET /diagnostic
 - 比較舊版和新版資料獲取
 - 提供整體健康狀態報告
 
-**回應範例：**
+**回應範例（真實 MongoDB 連接）：**
 ```json
 {
   "timestamp": 1234567890.123,
@@ -55,6 +57,46 @@ GET /diagnostic
   "summary": {
     "overall_status": "healthy",
     "issues": []
+  }
+}
+```
+
+**回應範例（模擬模式）：**
+```json
+{
+  "timestamp": 1234567890.123,
+  "mongo_connection": {
+    "status": "error",
+    "error": "MONGO_URL 未設定",
+    "details": {
+      "mongo_url": null,
+      "env": "dev"
+    }
+  },
+  "test_member_id": "mock_member_1",
+  "notifications_test": {
+    "status": "success (mock)",
+    "data": {
+      "member_id": "mock_member_1",
+      "notifications_count": 1,
+      "has_data": true
+    }
+  },
+  "socialpage_test": {
+    "status": "success (mock)",
+    "data": {
+      "timestamp": 1234567890,
+      "stories_count": 1,
+      "members_count": 1,
+      "has_data": true
+    }
+  },
+  "summary": {
+    "overall_status": "healthy (mock mode)",
+    "issues": [
+      "MongoDB 連接失敗: MONGO_URL 未設定",
+      "使用模擬資料進行測試"
+    ]
   }
 }
 ```
@@ -115,10 +157,13 @@ curl -X POST http://localhost:8000/notifications \
 
 ### 3. 使用診斷腳本
 ```bash
-# 運行診斷測試腳本
+# 運行模擬診斷測試腳本（不需要 MongoDB）
+python test_mock_diagnostic.py
+
+# 運行完整診斷測試腳本（需要 MongoDB）
 python test_diagnostic.py
 
-# 運行 MongoDB 連接池測試
+# 運行 MongoDB 連接池測試（需要 MongoDB）
 python test_mongo_pool.py
 ```
 
@@ -141,6 +186,8 @@ echo $MONGO_URL
 # 檢查 MongoDB 服務器狀態
 # 根據你的部署方式檢查
 ```
+
+**注意：** 即使 MongoDB 連接失敗，診斷工具也會自動使用模擬資料進行測試，狀態會顯示為 `"success (mock)"`。
 
 ### 2. 資料獲取失敗
 **症狀：** 端點返回 500 錯誤，包含診斷信息

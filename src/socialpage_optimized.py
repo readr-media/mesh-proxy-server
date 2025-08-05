@@ -8,6 +8,7 @@ from fastapi_cache import FastAPICache
 from src.cache import get_cache, set_cache
 import json
 from src.mongo_client import get_mongo_manager
+from src.error_handler import ErrorHandler
 
 async def getSocialPage_optimized(member_id: str, index: int = 0, take: int = 0):
     """
@@ -24,14 +25,29 @@ async def getSocialPage_optimized(member_id: str, index: int = 0, take: int = 0)
         gql_endpoint = os.environ['MESH_GQL_ENDPOINT']
         
         # 使用優化的 GQL 查詢
-        publishers, _ = await gql_query_optimized(gql_endpoint, gql_all_publishers)
-        publishers = publishers['publishers']
-        publishers_table = {
-            publisher['id']: {
-                'title': publisher['title'],
-                'customId': publisher['customId'],
-            } for publisher in publishers
-        }
+        ErrorHandler.log_operation("GQL publishers query", {"endpoint": gql_endpoint})
+        publishers, error = await gql_query_optimized(gql_endpoint, gql_all_publishers)
+        
+        gql_result = ErrorHandler.handle_gql_error(publishers, error, "publishers query")
+        
+        publishers_table = {}
+        if gql_result["status"] == "success":
+            publishers_data = gql_result["data"]
+            publishers_list = ErrorHandler.safe_get(publishers_data, 'publishers', [])
+            publishers_list = ErrorHandler.safe_list_operation(publishers_list, "publishers list")
+            
+            publishers_table = {
+                publisher['id']: {
+                    'title': publisher['title'],
+                    'customId': publisher['customId'],
+                } for publisher in publishers_list
+                if isinstance(publisher, dict) and 'id' in publisher
+            }
+            
+            ErrorHandler.log_operation("GQL publishers processing", {"processed_count": len(publishers_table)})
+        else:
+            print(f"GQL publishers query failed: {gql_result['error']}")
+            # 如果 GQL 查詢失敗，使用空字典繼續執行
         
         # 使用 MongoDB 連接池
         mongo_manager = await get_mongo_manager()
@@ -40,7 +56,22 @@ async def getSocialPage_optimized(member_id: str, index: int = 0, take: int = 0)
         
         # get the information about target member
         member_info = await col_members.find_one({"_id": member_id})
-        followings = member_info['following']
+        if not member_info:
+            print(f"Member not found: {member_id}")
+            return {
+                "timestamp": int(asyncio.get_event_loop().time()),
+                "stories": [],
+                "members": []
+            }
+        
+        followings = member_info.get('following', [])
+        if not followings:
+            # 如果沒有關注者，返回空的社交頁面
+            return {
+                "timestamp": int(asyncio.get_event_loop().time()),
+                "stories": [],
+                "members": []
+            }
         
         # 使用非同步查詢獲取關注者資訊
         followings_info = await col_members.find({

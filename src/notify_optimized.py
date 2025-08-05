@@ -3,6 +3,7 @@ from src.gql_optimized import gql_query_optimized
 import os
 import copy
 from src.mongo_client import get_mongo_manager
+from src.error_handler import ErrorHandler
 
 empty_mongo_notifies = {
     "_id": None,
@@ -41,14 +42,18 @@ async def get_notifies_optimized(memberId: str, index: int = 0, take: int = 10):
     # 使用非同步查詢
     record = await col_notify.find_one({"_id": memberId})
     
-    empty_template = copy.deepcopy(empty_notifies)
-    empty_template["id"] = memberId
-    
+    # 如果找不到記錄，創建一個空的記錄
     if record is None:
         empty_mongo_template = copy.deepcopy(empty_mongo_notifies)
         empty_mongo_template["_id"] = memberId
-        await col_notify.insert_one(empty_mongo_template)
+        try:
+            await col_notify.insert_one(empty_mongo_template)
+        except Exception as e:
+            print(f"Failed to insert empty notification record: {e}")
         return empty_template
+    
+    empty_template = copy.deepcopy(empty_notifies)
+    empty_template["id"] = memberId
     
     response = empty_template
     try:
@@ -76,19 +81,38 @@ async def get_notifies_optimized(memberId: str, index: int = 0, take: int = 10):
         notifiersId = list(set(notifiersId))
 
         # search member's full information using optimized GQL
-        mutation = {
-            "where": {
-                "id": {
-                    "in": notifiersId
+        if notifiersId:  # 只有在有通知者 ID 時才查詢
+            mutation = {
+                "where": {
+                    "id": {
+                        "in": notifiersId
+                    }
                 }
             }
-        }
-        members, _ = await gql_query_optimized(MESH_GQL_ENDPOINT, gql_member_notifiers, mutation)
-        members = members['members']
-        member_table = {}
-        for member in members:
-            id = member['id']
-            member_table[id] = member
+            
+            ErrorHandler.log_operation("GQL members query", {"notifiers_count": len(notifiersId)})
+            members, error = await gql_query_optimized(MESH_GQL_ENDPOINT, gql_member_notifiers, mutation)
+            
+            gql_result = ErrorHandler.handle_gql_error(members, error, "members query")
+            
+            member_table = {}
+            if gql_result["status"] == "success":
+                members_data = gql_result["data"]
+                members_list = ErrorHandler.safe_get(members_data, 'members', [])
+                members_list = ErrorHandler.safe_list_operation(members_list, "members list")
+                
+                for member in members_list:
+                    if isinstance(member, dict) and 'id' in member:
+                        id = member['id']
+                        member_table[id] = member
+                
+                ErrorHandler.log_operation("GQL members processing", {"processed_count": len(member_table)})
+            else:
+                print(f"GQL members query failed: {gql_result['error']}")
+                # 如果 GQL 查詢失敗，使用空字典繼續執行
+        else:
+            member_table = {}
+            print("No notifiers to query")
 
         # generate the full notifies information
         full_notifies = []
