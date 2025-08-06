@@ -40,14 +40,14 @@
       
       echo "🧪 運行所有測試..."
       python run_all_tests.py
-      PYTHON_TEST_EXIT_CODE=$?
+      exit_code=$?
       
-      if [ $PYTHON_TEST_EXIT_CODE -eq 0 ]; then
+      if [ $exit_code -eq 0 ]; then
         echo "✅ 所有測試通過！"
       else
-        echo "❌ 測試失敗！退出碼: $PYTHON_TEST_EXIT_CODE"
+        echo "❌ 測試失敗！退出碼: $exit_code"
         echo "💥 CI/CD 流程將在此停止，請修復測試錯誤後重試"
-        exit $PYTHON_TEST_EXIT_CODE
+        exit $exit_code
       fi
 ```
 
@@ -59,7 +59,7 @@
 
 #### 2. 檢查退出碼
 - **方法**: 使用 `$?` 獲取上一個命令的退出碼
-- **檢查**: 明確檢查 `PYTHON_TEST_EXIT_CODE` 是否為 0
+- **檢查**: 明確檢查 `exit_code` 是否為 0
 
 #### 3. 條件性執行
 - **成功**: 顯示成功消息並繼續
