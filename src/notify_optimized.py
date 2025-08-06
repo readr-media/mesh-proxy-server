@@ -100,9 +100,26 @@ async def get_notifies_optimized(memberId: str, index: int = 0, take: int = 10):
             
             print(f"🔍 查詢成員信息: {notifiersId}")
             print(f"   GQL 端點: {MESH_GQL_ENDPOINT}")
+            print(f"   查詢變數: {mutation}")
+            print(f"   GQL 查詢字符串: {gql_member_notifiers}")
             
             ErrorHandler.log_operation("GQL members query", {"notifiers_count": len(notifiersId)})
             members, error = await gql_query_optimized(MESH_GQL_ENDPOINT, gql_member_notifiers, mutation)
+            
+            # 添加詳細的響應調試
+            if members:
+                print(f"   GQL 響應結構: {list(members.keys())}")
+                if 'errors' in members:
+                    print(f"   ❌ GQL 錯誤: {members['errors']}")
+                if 'data' in members:
+                    data = members['data']
+                    print(f"   數據字段: {list(data.keys()) if isinstance(data, dict) else 'Not a dict'}")
+                    if 'members' in data:
+                        members_list = data['members']
+                        print(f"   成員列表類型: {type(members_list)}")
+                        print(f"   成員列表長度: {len(members_list) if isinstance(members_list, list) else 'Not a list'}")
+            else:
+                print(f"   ❌ GQL 響應為 None")
             
             if error:
                 print(f"❌ GQL 查詢錯誤: {error}")
