@@ -45,7 +45,7 @@ gcloud builds triggers create github \
     --repo-owner="hcchien" \
     --branch-pattern="^dev$" \
     --build-config="cloudbuild.yaml" \
-    --substitutions="_SERVICE_NAME=$DEV_SERVICE_NAME,_ENVIRONMENT=dev" \
+    --substitutions="_SERVICE_NAME=$DEV_SERVICE_NAME,_ENVIRONMENT=dev,_PRIVATE_BUCKET_NAME=mirrorlearning-private-bucket,_KEYFILE_BLOB_NAME=firebase-keyfile.json,_MESH_GQL_ENDPOINT=https://dev-gql-endpoint.com/graphql,_JWT_SECRET=your-dev-jwt-secret,_MONGO_URL=mongodb://dev-mongo-url" \
     --description="Dev environment trigger for mesh-proxy-server"
 
 echo "✅ dev 觸發器創建成功"
