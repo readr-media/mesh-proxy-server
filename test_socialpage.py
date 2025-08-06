@@ -352,6 +352,7 @@ class TestGetSocialPage(unittest.TestCase):
             return []
         
         self.mock_collection_members.find.side_effect = mock_find
+        self.mock_collection_stories.find.return_value = []
         
         # 執行測試
         result = await getSocialPage(self.mongo_url, self.member_id)
@@ -590,6 +591,7 @@ class TestGetSocialPage(unittest.TestCase):
         
         # 設置空的查詢結果
         self.mock_collection_members.find.return_value = []
+        self.mock_collection_stories.find.return_value = []
         
         # 執行測試
         result = await getSocialPage(self.mongo_url, self.member_id)
@@ -687,6 +689,7 @@ class TestGetSocialPage(unittest.TestCase):
         
         # 設置空的查詢結果
         self.mock_collection_members.find.return_value = []
+        self.mock_collection_stories.find.return_value = []
         
         # 模擬緩存設置失敗
         mock_set_cache.side_effect = Exception("Cache set failed")
