@@ -31,6 +31,19 @@ async def getSocialPage(mongo_url: str, member_id: str, index: int=0, take: int=
         social_stories, social_members = [], []
         gql_endpoint = os.environ['MESH_GQL_ENDPOINT']
         publishers, _ = gql_query(gql_endpoint, gql_all_publishers)
+        if publishers is None:
+            # 如果 GQL 查詢失敗，返回空的社交頁面
+            social_page = {
+                "timestamp": int(datetime.now().timestamp()),
+                "stories": [],
+                "members": []
+            }
+            await set_cache(cache_key, json.dumps(social_page), config.SOCIALPAGE_CACHE_TIME)
+            # support pagination
+            if (index>=0) and (take>0):
+                social_page['stories'] = social_page['stories'][index: index+take]
+            return social_page
+        
         publishers = publishers['publishers']
         publishers_table = {
             publisher['id']: {
@@ -45,6 +58,19 @@ async def getSocialPage(mongo_url: str, member_id: str, index: int=0, take: int=
         
         # get the information about target member
         member_info = col_members.find_one(member_id)
+        if member_info is None:
+            # 如果成員不存在，返回空的社交頁面
+            social_page = {
+                "timestamp": int(datetime.now().timestamp()),
+                "stories": [],
+                "members": []
+            }
+            await set_cache(cache_key, json.dumps(social_page), config.SOCIALPAGE_CACHE_TIME)
+            # support pagination
+            if (index>=0) and (take>0):
+                social_page['stories'] = social_page['stories'][index: index+take]
+            return social_page
+        
         followings = member_info['following']
         followings_info = list(
             col_members.find({
@@ -204,7 +230,10 @@ async def getSocialPage(mongo_url: str, member_id: str, index: int=0, take: int=
             "stories": social_stories,
             "members": social_members
         }
-        await set_cache(cache_key, json.dumps(social_page), config.SOCIALPAGE_CACHE_TIME)
+        try:
+            await set_cache(cache_key, json.dumps(social_page), config.SOCIALPAGE_CACHE_TIME)
+        except Exception as e:
+            print(f"Failed to set cache for social page: {e}")
     # support pagination
     if (index>=0) and (take>0):
         social_page['stories'] = social_page['stories'][index: index+take]

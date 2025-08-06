@@ -1,37 +1,78 @@
-steps:                                                                                                                                                                  
-  - name: gcr.io/cloud-builders/docker
-    id: Build Image
-    args:
-      - build
-      - "-t"
-      - "gcr.io/$PROJECT_ID/${_SERVICE_NAME}:${BRANCH_NAME}_${SHORT_SHA}"
-      - .
-
-  - name: gcr.io/cloud-builders/docker
-    id: Push Image
-    args:
-      - push
-      - "gcr.io/$PROJECT_ID/${_SERVICE_NAME}:${BRANCH_NAME}_${SHORT_SHA}"
-
-  - name: gcr.io/cloud-builders/gcloud
-    id: Deploy Image
-    entrypoint: 'bash'
+steps:
+  # 安裝依賴並運行測試
+  - name: python:3.9
+    id: Install Dependencies and Run Tests
+    entrypoint: bash
     args:
       - '-c'
       - |
-
-        # read cloud run service names from substitution variable
-        IFS=',' read -r -a cloud_runs <<< "${_SERVICE_NAME}"
-
-        for cr in "${cloud_runs[@]}"
-        do
-
-        # deploy cloud run service iteratively
-        gcloud run deploy "$cr" --image gcr.io/$PROJECT_ID/${_SERVICE_NAME}:${BRANCH_NAME}_${SHORT_SHA} --region asia-east1
-
-        done
-
-timeout: 1200s
-
+        set -e  # 遇到錯誤立即退出
+        
+        echo "🔧 安裝 Python 依賴..."
+        pip install -r requirements.txt
+        
+        echo "🧪 運行所有測試..."
+        python run_all_tests.py
+        exit_code=$?
+        
+        if [ $exit_code -eq 0 ]; then
+          echo "✅ 所有測試通過！"
+        else
+          echo "❌ 測試失敗！退出碼: $exit_code"
+          echo "💥 CI/CD 流程將在此停止，請修復測試錯誤後重試"
+          exit $exit_code
+        fi
+    
+  # 構建 Docker 鏡像
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - '--no-cache'
+      - '-t'
+      - >-
+        $_AR_HOSTNAME/$PROJECT_ID/cloud-run-source-deploy/$REPO_NAME/$_SERVICE_NAME:$COMMIT_SHA
+      - .
+      - '-f'
+      - Dockerfile
+    id: Build
+    
+  # 推送鏡像
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - push
+      - >-
+        $_AR_HOSTNAME/$PROJECT_ID/cloud-run-source-deploy/$REPO_NAME/$_SERVICE_NAME:$COMMIT_SHA
+    id: Push
+    
+  # 部署到 Cloud Run
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk:slim'
+    args:
+      - run
+      - services
+      - update
+      - $_SERVICE_NAME
+      - '--platform=managed'
+      - >-
+        --image=$_AR_HOSTNAME/$PROJECT_ID/cloud-run-source-deploy/$REPO_NAME/$_SERVICE_NAME:$COMMIT_SHA
+      - >-
+        --labels=managed-by=gcp-cloud-build-deploy-cloud-run,commit-sha=$COMMIT_SHA,gcb-build-id=$BUILD_ID,gcb-trigger-id=$_TRIGGER_ID,environment=$_ENVIRONMENT
+      - '--region=$_DEPLOY_REGION'
+    id: Deploy
+    entrypoint: gcloud
+images:
+  - >-
+    $_AR_HOSTNAME/$PROJECT_ID/cloud-run-source-deploy/$REPO_NAME/$_SERVICE_NAME:$COMMIT_SHA
+options:
+  substitutionOption: ALLOW_LOOSE
+  logging: CLOUD_LOGGING_ONLY
 substitutions:
-  _CLOUD_RUN_SERVICE_NAMES: "${_SERVICE_NAME}" # default value
+  _PLATFORM: managed
+  _SERVICE_NAME: mesh-proxy-server-dev
+  _TRIGGER_ID: c466ec02-49ed-40c1-a32d-f4a40418c9d9
+  _DEPLOY_REGION: asia-east1
+  _AR_HOSTNAME: asia-east1-docker.pkg.dev
+  _ENVIRONMENT: dev
+tags:
+  - gcp-cloud-build-deploy-cloud-run
+  - gcp-cloud-build-deploy-cloud-run-managed
+  - mesh-proxy-server
