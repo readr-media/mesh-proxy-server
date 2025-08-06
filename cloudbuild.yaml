@@ -1,4 +1,20 @@
-steps:                                                                                                                                                                  
+steps:
+  # 安裝依賴並運行測試
+  - name: python:3.9
+    id: Install Dependencies and Run Tests
+    entrypoint: bash
+    args:
+      - '-c'
+      - |
+        echo "🔧 安裝 Python 依賴..."
+        pip install -r requirements.txt
+        
+        echo "🧪 運行所有測試..."
+        python run_all_tests.py
+        
+        echo "✅ 測試完成！"
+    
+  # 構建 Docker 鏡像
   - name: gcr.io/cloud-builders/docker
     id: Build Image
     args:

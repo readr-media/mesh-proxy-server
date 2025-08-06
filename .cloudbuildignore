@@ -1,0 +1,60 @@
+# Git 相關
+.git/
+.gitignore
+
+# Python 相關
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+pip-log.txt
+pip-delete-this-directory.txt
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.log
+.git
+.mypy_cache
+.pytest_cache
+.hypothesis
+
+# IDE 相關
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# 文檔和說明文件
+*.md
+!README.md
+
+# 測試相關（在構建時不需要，但測試腳本會使用）
+# test_*.py
+# run_*_tests.py
+
+# 日誌文件
+*.log
+logs/
+
+# 臨時文件
+tmp/
+temp/
+.tmp/
+
+# 環境變數文件
+.env
+.env.local
+.env.*.local
+
+# 其他
+.DS_Store
+Thumbs.db 
