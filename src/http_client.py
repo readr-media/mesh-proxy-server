@@ -50,9 +50,12 @@ class OptimizedHTTPClient:
                 ssl=False  # 在開發環境中可能需要
             ) as response:
                 response.raise_for_status()
-                return await response.json()
+                result = await response.json()
+                
+                print(f"   ✅ HTTP 響應成功")
+                return result
         except aiohttp.ClientError as e:
-            print(f"HTTP request error: {e}")
+            print(f"❌ HTTP 請求錯誤: {e}")
             raise e
     
     async def post_form(self, url: str, data: Dict[str, Any], files: Dict[str, bytes], headers: Optional[Dict[str, str]] = None) -> Dict[str, Any]:
