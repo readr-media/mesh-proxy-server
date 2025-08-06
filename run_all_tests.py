@@ -20,7 +20,8 @@ def run_python_tests():
         'test_mongo_pool.py',
         'test_error_fix.py',
         'test_mock_diagnostic.py',
-        'test_notification_debug.py'
+        'test_notification_debug.py',
+        'test_socialpage.py'
     ]
     
     all_tests_passed = True
