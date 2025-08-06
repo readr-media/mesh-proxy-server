@@ -27,7 +27,16 @@ query Members($where: MemberWhereInput!){
 '''
 
 def get_notifies(db, memberId: str, index: int=0, take: int=10):
-    MESH_GQL_ENDPOINT = os.environ['MESH_GQL_ENDPOINT']
+    MESH_GQL_ENDPOINT = os.environ.get('MESH_GQL_ENDPOINT')
+    
+    if not MESH_GQL_ENDPOINT:
+        print(f"❌ 錯誤: MESH_GQL_ENDPOINT 環境變數未設置")
+        print(f"   請設置環境變數: export MESH_GQL_ENDPOINT=<your_gql_endpoint>")
+        # 返回空的通知列表而不是崩潰
+        empty_template = copy.deepcopy(empty_notifies)
+        empty_template["id"] = memberId
+        return empty_template
+    
     col_notify = db.notifications
     record = col_notify.find_one(memberId)
     
