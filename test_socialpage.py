@@ -221,7 +221,8 @@ class TestGetSocialPage(unittest.TestCase):
         self.mock_collection_members.find_one.return_value = member_info
         
         # 使用 side_effect 來處理不同的查詢
-        def mock_find(query):
+        def mock_find(*args, **kwargs):
+            query = args[0] if args else kwargs.get('filter', {})
             if query.get("_id", {}).get("$in"):
                 # 這是查詢關注成員的調用
                 if "member_1" in query["_id"]["$in"] or "member_2" in query["_id"]["$in"]:
@@ -339,7 +340,8 @@ class TestGetSocialPage(unittest.TestCase):
         self.mock_collection_members.find_one.return_value = member_info
         
         # 使用 side_effect 來處理不同的查詢
-        def mock_find(query):
+        def mock_find(*args, **kwargs):
+            query = args[0] if args else kwargs.get('filter', {})
             if query.get("_id", {}).get("$in"):
                 # 這是查詢關注成員的調用
                 if "member_1" in query["_id"]["$in"] or "member_2" in query["_id"]["$in"]:
@@ -430,7 +432,8 @@ class TestGetSocialPage(unittest.TestCase):
         self.mock_collection_members.find_one.return_value = member_info
         
         # 使用 side_effect 來處理不同的查詢
-        def mock_find(query):
+        def mock_find(*args, **kwargs):
+            query = args[0] if args else kwargs.get('filter', {})
             if query.get("_id", {}).get("$in"):
                 # 這是查詢關注成員的調用
                 if "member_1" in query["_id"]["$in"]:
@@ -585,6 +588,9 @@ class TestGetSocialPage(unittest.TestCase):
         }
         self.mock_collection_members.find_one.return_value = member_info
         
+        # 設置空的查詢結果
+        self.mock_collection_members.find.return_value = []
+        
         # 執行測試
         result = await getSocialPage(self.mongo_url, self.member_id)
         
@@ -678,6 +684,9 @@ class TestGetSocialPage(unittest.TestCase):
             "following": []
         }
         self.mock_collection_members.find_one.return_value = member_info
+        
+        # 設置空的查詢結果
+        self.mock_collection_members.find.return_value = []
         
         # 模擬緩存設置失敗
         mock_set_cache.side_effect = Exception("Cache set failed")
