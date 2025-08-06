@@ -53,6 +53,40 @@ async def diagnostic_mongo():
   result = await DiagnosticMiddleware.check_mongo_connection()
   return result
 
+@app.get('/diagnostic/cache/{category}')
+async def diagnostic_cache(category: str, publishers: str):
+  '''
+  診斷快取狀態
+  publishers: 逗號分隔的發布者ID列表
+  '''
+  try:
+    from src.latest_stories_optimized import get_cache_status
+    publisher_list = [p.strip() for p in publishers.split(',')]
+    cache_status = await get_cache_status(publisher_list, category)
+    return cache_status
+  except Exception as e:
+    return JSONResponse(
+      status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+      content={"error": f"快取診斷失敗: {str(e)}"}
+    )
+
+@app.post('/admin/force-update/{category}')
+async def force_update_stories(category: str, publishers: str):
+  '''
+  強制更新指定類別和發布者的新聞（管理員功能）
+  publishers: 逗號分隔的發布者ID列表
+  '''
+  try:
+    from src.latest_stories_optimized import force_update_stories
+    publisher_list = [p.strip() for p in publishers.split(',')]
+    await force_update_stories(publisher_list, category)
+    return {"message": f"已觸發 {category} 類別的強制更新", "publishers": publisher_list}
+  except Exception as e:
+    return JSONResponse(
+      status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+      content={"error": f"強制更新失敗: {str(e)}"}
+    )
+
 @app.post('/accesstoken')
 async def accesstoken(request: Request):
   start_time = datetime.now().timestamp()
@@ -188,15 +222,63 @@ async def latest_stories(latestStories: LatestStories):
   Get latest stories by publisher ids.
   '''
   start_time = datetime.now().timestamp()
-  response = await proxy.latest_stories_proxy(latestStories)
-  # log performance
-  end_time = datetime.now().timestamp()
-  send_performance_logging({
-    "endpoint": "POST: /latest_stories",
-    "execute_time": end_time - start_time,
-    "data": latestStories.model_dump(),
-  })
-  return response
+  
+  # 使用效能監控器
+  from src.performance_monitor import PerformanceMonitor, log_performance_detailed_async
+  monitor = PerformanceMonitor("POST: /latest_stories")
+  monitor.start()
+  
+  try:
+    # 使用優化的最新新聞函數
+    from src.latest_stories_optimized import get_latest_stories_optimized
+    response = await get_latest_stories_optimized(
+      publishers=latestStories.publishers,
+      category=latestStories.category,
+      index=latestStories.index,
+      take=latestStories.take,
+      monitor=monitor
+    )
+    
+    # 記錄效能資訊
+    monitor.end()
+    await log_performance_detailed_async(monitor)
+    
+    # log performance
+    end_time = datetime.now().timestamp()
+    send_performance_logging({
+      "endpoint": "POST: /latest_stories",
+      "execute_time": end_time - start_time,
+      "data": latestStories.model_dump(),
+    })
+    
+    return response
+    
+  except Exception as e:
+    # 記錄錯誤並返回診斷信息
+    error_msg = f"最新新聞獲取失敗: {str(e)}"
+    print(error_msg)
+    
+    # 嘗試提供診斷信息
+    try:
+      from src.diagnostic_middleware import DiagnosticMiddleware
+      mongo_status = await DiagnosticMiddleware.check_mongo_connection()
+      return JSONResponse(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        content={
+          "error": error_msg,
+          "diagnostic": {
+            "mongo_connection": mongo_status,
+            "publishers": latestStories.publishers,
+            "category": latestStories.category,
+            "suggestion": "請檢查 /diagnostic 端點獲取詳細診斷信息"
+          }
+        }
+      )
+    except:
+      return JSONResponse(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        content={"error": error_msg}
+      )
 
 @app.post('/search')
 async def search_post(search: Search):
