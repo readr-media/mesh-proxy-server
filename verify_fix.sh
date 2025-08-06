@@ -15,8 +15,10 @@ echo ""
 echo "📋 檢查 Cloud Build 配置..."
 
 # 檢查 cloudbuild.yaml 是否正確
-if grep -q "ENVIRONMENT=\$_ENVIRONMENT" cloudbuild.yaml; then
-    echo "✅ cloudbuild.yaml 中的環境變數設置正確"
+if grep -q "update-env-vars=ENVIRONMENT=\$_ENVIRONMENT" cloudbuild.yaml; then
+    echo "✅ cloudbuild.yaml 使用了正確的 update-env-vars 參數"
+elif grep -q "set-env-vars=ENVIRONMENT=\$_ENVIRONMENT" cloudbuild.yaml; then
+    echo "⚠️  cloudbuild.yaml 使用了 set-env-vars，這會覆蓋其他環境變數"
 else
     echo "❌ cloudbuild.yaml 中的環境變數設置有問題"
 fi

@@ -10,16 +10,20 @@
 
 ## 修復方案
 
-### 1. 移除環境變數覆蓋
-將 `cloudbuild.yaml` 中的 `--set-env-vars` 修改為只設置 `ENVIRONMENT` 變數：
+### 1. 使用 update-env-vars 而不是 set-env-vars
+將 `cloudbuild.yaml` 中的 `--set-env-vars` 修改為 `--update-env-vars`：
 
 ```yaml
-# 修復前（會覆蓋原有環境變數）
+# 修復前（會覆蓋所有原有環境變數）
 --set-env-vars=ENVIRONMENT=$_ENVIRONMENT,PRIVATE_BUCKET_NAME=$_PRIVATE_BUCKET_NAME,KEYFILE_BLOB_NAME=$_KEYFILE_BLOB_NAME,MESH_GQL_ENDPOINT=$_MESH_GQL_ENDPOINT,JWT_SECRET=$_JWT_SECRET,MONGO_URL=$_MONGO_URL
 
-# 修復後（只添加 ENVIRONMENT 變數）
---set-env-vars=ENVIRONMENT=$_ENVIRONMENT
+# 修復後（只添加 ENVIRONMENT 變數，保留其他環境變數）
+--update-env-vars=ENVIRONMENT=$_ENVIRONMENT
 ```
+
+**重要區別：**
+- `--set-env-vars`: 完全替換所有環境變數
+- `--update-env-vars`: 只更新指定的環境變數，保留其他現有變數
 
 ### 2. 清理 substitutions
 移除 `substitutions` 中不需要的環境變數定義，只保留必要的構建變數：
