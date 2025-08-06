@@ -230,7 +230,10 @@ async def getSocialPage(mongo_url: str, member_id: str, index: int=0, take: int=
             "stories": social_stories,
             "members": social_members
         }
-        await set_cache(cache_key, json.dumps(social_page), config.SOCIALPAGE_CACHE_TIME)
+        try:
+            await set_cache(cache_key, json.dumps(social_page), config.SOCIALPAGE_CACHE_TIME)
+        except Exception as e:
+            print(f"Failed to set cache for social page: {e}")
     # support pagination
     if (index>=0) and (take>0):
         social_page['stories'] = social_page['stories'][index: index+take]
