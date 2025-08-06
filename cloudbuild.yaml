@@ -48,8 +48,6 @@ steps:
       - >-
         --labels=managed-by=gcp-cloud-build-deploy-cloud-run,commit-sha=$COMMIT_SHA,gcb-build-id=$BUILD_ID,gcb-trigger-id=$_TRIGGER_ID,environment=$_ENVIRONMENT
       - '--region=$_DEPLOY_REGION'
-      - '--quiet'
-      - '--update-env-vars=ENVIRONMENT=$_ENVIRONMENT'
     id: Deploy
     entrypoint: gcloud
 images:
