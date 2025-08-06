@@ -43,12 +43,36 @@ async def get_notifies_optimized(memberId: str, index: int = 0, take: int = 10):
         return empty_template
     
     # 使用 MongoDB 連接池
-    mongo_manager = await get_mongo_manager()
-    db = mongo_manager.get_async_db()
-    col_notify = db.notifications
+    print(f"🔍 檢查 MongoDB 連接:")
+    try:
+        mongo_manager = await get_mongo_manager()
+        db = mongo_manager.get_async_db()
+        col_notify = db.notifications
+        
+        # 測試連接
+        await db.command('ping')
+        print(f"   ✅ MongoDB 連接正常")
+        
+        print(f"🔍 查詢 MongoDB notifications:")
+        print(f"   集合: notifications")
+        print(f"   查詢條件: {{'_id': '{memberId}'}}")
+        
+    except Exception as e:
+        print(f"   ❌ MongoDB 連接失敗: {e}")
+        # 返回空的通知列表
+        empty_template = copy.deepcopy(empty_notifies)
+        empty_template["id"] = memberId
+        return empty_template
     
     # 使用非同步查詢
     record = await col_notify.find_one({"_id": memberId})
+    
+    print(f"   MongoDB 查詢結果: {record is not None}")
+    if record:
+        print(f"   通知數量: {len(record.get('notifies', []))}")
+        print(f"   最後讀取時間: {record.get('lrt', 0)}")
+    else:
+        print(f"   ⚠️  未找到通知記錄")
     
     # 如果找不到記錄，創建一個空的記錄
     if record is None:
@@ -69,12 +93,16 @@ async def get_notifies_optimized(memberId: str, index: int = 0, take: int = 10):
         all_notifies = record.get('notifies', [])
         all_notifies = all_notifies[index: index+take]
 
+        print(f"📋 處理通知數據:")
+        print(f"   總通知數量: {len(all_notifies)}")
+        
         # collect from_members information
         notifiersId = []
         targetObjs = {}
-        for notify in all_notifies:
+        for i, notify in enumerate(all_notifies):
             action = notify['action']
             if action in config.PAYMENT_NOTIFIES:
+                print(f"   ⏭️  跳過支付通知 [{i}]: {action}")
                 continue
             aggregate = notify['aggregate']
             membersId = notify['from']
@@ -86,7 +114,11 @@ async def get_notifies_optimized(memberId: str, index: int = 0, take: int = 10):
             targetId = notify['targetId']
             targetId_list = targetObjs.setdefault(objective, [])
             targetId_list.append(targetId)
+            print(f"   📝 處理通知 [{i}]: action={action}, from={membersId}, objective={objective}, targetId={targetId}")
+        
         notifiersId = list(set(notifiersId))
+        print(f"   需要查詢的成員 ID: {notifiersId}")
+        print(f"   目標對象: {targetObjs}")
 
         # search member's full information using optimized GQL
         if notifiersId:  # 只有在有通知者 ID 時才查詢
@@ -173,26 +205,8 @@ async def get_notifies_optimized(memberId: str, index: int = 0, take: int = 10):
                     notifiers.append(notifier)
                 else:
                     print(f"cannot get memberId: {from_notifiers}")
-                    # 添加調試信息
-                    try:
-                        from src.notify_debug import debug_notification_issue
-                        debug_info = debug_notification_issue(
-                            from_notifiers, 
-                            member_table, 
-                            {"action": action, "objective": objective, "targetId": targetId}
-                        )
-                        print(f"   調試信息: 成員表大小={debug_info['member_table_size']}, 相似ID={debug_info['similar_ids']}")
-                    except Exception as debug_error:
-                        print(f"   調試失敗: {debug_error}")
-                    
-                    # 創建模擬成員以避免錯誤
-                    try:
-                        from src.notify_debug import NotifyDebugger
-                        mock_member = NotifyDebugger.create_mock_member(from_notifiers)
-                        notifiers.append(mock_member)
-                        print(f"   已創建模擬成員: {from_notifiers}")
-                    except Exception as mock_error:
-                        print(f"   創建模擬成員失敗: {mock_error}")
+                    print(f"   成員表大小: {len(member_table)}")
+                    print(f"   可用的成員 ID: {list(member_table.keys())}")
             full_notify = {
                 "uuid": notify["uuid"],
                 "read": notify["read"],

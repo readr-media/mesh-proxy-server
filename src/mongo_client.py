@@ -65,12 +65,19 @@ class MongoManager:
     def get_async_db(self):
         """取得非同步資料庫實例"""
         client = self.get_async_client()
+        db_name = None
         if self._env == 'staging':
-            return client.staging
+            db = client.staging
+            db_name = 'staging'
         elif self._env == 'prod':
-            return client.prod
+            db = client.prod
+            db_name = 'prod'
         else:
-            return client.dev
+            db = client.dev
+            db_name = 'dev'
+        
+        print(f"   📊 使用資料庫: {db_name}")
+        return db
     
     def get_sync_db(self):
         """取得同步資料庫實例（向後相容）"""
@@ -102,7 +109,10 @@ async def get_mongo_manager() -> MongoManager:
     """取得全域 MongoDB 管理器實例"""
     global _mongo_manager
     if _mongo_manager is None:
+        print(f"🔧 創建新的 MongoDB 管理器實例")
         _mongo_manager = MongoManager()
+    else:
+        print(f"🔧 使用現有的 MongoDB 管理器實例")
     return _mongo_manager
 
 async def initialize_mongo(mongo_url: str, env: str = 'dev'):
