@@ -51,8 +51,6 @@ class OptimizedHTTPClient:
             ) as response:
                 response.raise_for_status()
                 result = await response.json()
-                
-                print(f"   ✅ HTTP 響應成功")
                 return result
         except aiohttp.ClientError as e:
             print(f"❌ HTTP 請求錯誤: {e}")
