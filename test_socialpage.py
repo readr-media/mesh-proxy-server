@@ -219,8 +219,18 @@ class TestGetSocialPage(unittest.TestCase):
         
         # 設置數據庫查詢結果
         self.mock_collection_members.find_one.return_value = member_info
-        self.mock_collection_members.find.return_value = followings_info
-        self.mock_collection_members.find.return_value = recommended_members
+        
+        # 使用 side_effect 來處理不同的查詢
+        def mock_find(query):
+            if query.get("_id", {}).get("$in"):
+                # 這是查詢關注成員的調用
+                if "member_1" in query["_id"]["$in"] or "member_2" in query["_id"]["$in"]:
+                    return followings_info
+                else:
+                    return recommended_members
+            return []
+        
+        self.mock_collection_members.find.side_effect = mock_find
         self.mock_collection_stories.find.return_value = stories_data
         
         # 執行測試
@@ -327,7 +337,19 @@ class TestGetSocialPage(unittest.TestCase):
         
         # 設置數據庫查詢結果
         self.mock_collection_members.find_one.return_value = member_info
-        self.mock_collection_members.find.return_value = followings_info
+        
+        # 使用 side_effect 來處理不同的查詢
+        def mock_find(query):
+            if query.get("_id", {}).get("$in"):
+                # 這是查詢關注成員的調用
+                if "member_1" in query["_id"]["$in"] or "member_2" in query["_id"]["$in"]:
+                    return followings_info
+                else:
+                    # 返回空的推薦成員列表，因為非活躍成員不會產生推薦
+                    return []
+            return []
+        
+        self.mock_collection_members.find.side_effect = mock_find
         
         # 執行測試
         result = await getSocialPage(self.mongo_url, self.member_id)
@@ -338,6 +360,7 @@ class TestGetSocialPage(unittest.TestCase):
         self.assertIn("members", result)
         
         # 驗證非活躍成員被正確處理（不會出現在推薦中）
+        self.assertEqual(len(result["members"]), 0)
 
     @patch('src.socialpage.connect_db')
     @patch('src.socialpage.gql_query')
@@ -405,7 +428,19 @@ class TestGetSocialPage(unittest.TestCase):
         
         # 設置數據庫查詢結果
         self.mock_collection_members.find_one.return_value = member_info
-        self.mock_collection_members.find.return_value = followings_info
+        
+        # 使用 side_effect 來處理不同的查詢
+        def mock_find(query):
+            if query.get("_id", {}).get("$in"):
+                # 這是查詢關注成員的調用
+                if "member_1" in query["_id"]["$in"]:
+                    return followings_info
+                else:
+                    # 返回空的推薦成員列表
+                    return []
+            return []
+        
+        self.mock_collection_members.find.side_effect = mock_find
         self.mock_collection_stories.find.return_value = stories_data
         
         # 執行測試
@@ -437,6 +472,16 @@ class TestGetSocialPage(unittest.TestCase):
         
         # 模擬 GQL 查詢錯誤
         mock_gql_query.return_value = (None, "GQL query failed")
+        
+        # 模擬數據庫連接
+        mock_connect_db.return_value = self.mock_db
+        
+        # 模擬成員數據
+        member_info = {
+            "_id": self.member_id,
+            "following": []
+        }
+        self.mock_collection_members.find_one.return_value = member_info
         
         # 執行測試
         result = await getSocialPage(self.mongo_url, self.member_id)
