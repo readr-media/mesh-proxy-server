@@ -1,6 +1,6 @@
 from fastapi import FastAPI, status, Request, Path, Depends, Header, Response
-from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 from fastapi_cache import FastAPICache
@@ -202,28 +202,58 @@ async def latest_stories(latestStories: LatestStories):
 async def search_post(search: Search):
   start_time = datetime.now().timestamp()
   search_text, objectives = search.text, search.objectives
-  related_data = {}
   
-  ### search from meilisearch
-  client = search_api.connect_meilisearch()
-  if "story" in objectives:
-    related_data["story"] = await search_api.search_related_stories(client, search_text)
-  if "collection" in objectives:
-    related_data["collection"] = search_api.search_related_collections(client, search_text)
-  if "member" in objectives:
-    related_data["member"] = search_api.search_related_members(client, search_text)
-  if "publisher" in objectives:
-    related_data["publisher"] = search_api.search_related_publishers(client, search_text)
+  # 使用效能監控器
+  from src.performance_monitor import PerformanceMonitor, log_performance_detailed_async
+  monitor = PerformanceMonitor("POST: /search")
+  monitor.start()
   
-  # cloud logging
-  end_time = datetime.now().timestamp()
-  send_search_logging(search)
-  send_performance_logging({
-    "endpoint": "POST: /search",
-    "execute_time": end_time - start_time,
-    "data": search.model_dump(),
-  })
-  return related_data
+  try:
+    # 使用優化的搜尋函數
+    from src.search_optimized import search_all_optimized
+    related_data = await search_all_optimized(search_text, objectives, monitor=monitor)
+    
+    # 記錄效能資訊
+    monitor.end()
+    await log_performance_detailed_async(monitor)
+    
+    # cloud logging
+    end_time = datetime.now().timestamp()
+    send_search_logging(search)
+    send_performance_logging({
+      "endpoint": "POST: /search",
+      "execute_time": end_time - start_time,
+      "data": search.model_dump(),
+    })
+    
+    return related_data
+    
+  except Exception as e:
+    # 記錄錯誤並返回診斷信息
+    error_msg = f"搜尋失敗: {str(e)}"
+    print(error_msg)
+    
+    # 嘗試提供診斷信息
+    try:
+      from src.diagnostic_middleware import DiagnosticMiddleware
+      mongo_status = await DiagnosticMiddleware.check_mongo_connection()
+      return JSONResponse(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        content={
+          "error": error_msg,
+          "diagnostic": {
+            "mongo_connection": mongo_status,
+            "search_text": search_text,
+            "objectives": objectives,
+            "suggestion": "請檢查 /diagnostic 端點獲取詳細診斷信息"
+          }
+        }
+      )
+    except:
+      return JSONResponse(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        content={"error": error_msg}
+      )
 
 @app.post('/socialpage')
 async def socialpage_pagination(socialPage: SocialPage):
