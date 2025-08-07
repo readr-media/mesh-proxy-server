@@ -198,20 +198,40 @@ async def latest_stories(latestStories: LatestStories):
   })
   return response
 
-@app.post('/search')
-async def search_post(search: Search):
+@app.api_route('/search', methods=['GET', 'POST'])
+async def search_endpoint(
+  request: Request,
+  search: Search = None,
+  text: str = None,
+  objectives: str = "story",
+  manual: bool = False,
+  num: int = 10
+):
   start_time = datetime.now().timestamp()
-  search_text, objectives = search.text, search.objectives
+  
+  # 根據請求方法處理參數
+  if request.method == "POST":
+    # POST 請求：使用 JSON body
+    search_text = search.text
+    objectives_list = search.objectives
+    manual = search.manual
+    num = search.num
+    endpoint_name = "POST: /search"
+  else:
+    # GET 請求：使用 URL 參數
+    search_text = text
+    objectives_list = [obj.strip() for obj in objectives.split(',')]
+    endpoint_name = "GET: /search"
   
   # 使用效能監控器
   from src.performance_monitor import PerformanceMonitor, log_performance_detailed_async
-  monitor = PerformanceMonitor("POST: /search")
+  monitor = PerformanceMonitor(endpoint_name)
   monitor.start()
   
   try:
     # 使用優化的搜尋函數
     from src.search_optimized import search_all_optimized
-    related_data = await search_all_optimized(search_text, objectives, monitor=monitor)
+    related_data = await search_all_optimized(search_text, objectives_list, monitor=monitor)
     
     # 記錄效能資訊
     monitor.end()
@@ -219,11 +239,12 @@ async def search_post(search: Search):
     
     # cloud logging
     end_time = datetime.now().timestamp()
-    send_search_logging(search)
+    search_data = Search(text=search_text, objectives=objectives_list, manual=manual, num=num)
+    send_search_logging(search_data)
     send_performance_logging({
-      "endpoint": "POST: /search",
+      "endpoint": endpoint_name,
       "execute_time": end_time - start_time,
-      "data": search.model_dump(),
+      "data": search_data.model_dump(),
     })
     
     return related_data
@@ -244,7 +265,7 @@ async def search_post(search: Search):
           "diagnostic": {
             "mongo_connection": mongo_status,
             "search_text": search_text,
-            "objectives": objectives,
+            "objectives": objectives_list,
             "suggestion": "請檢查 /diagnostic 端點獲取詳細診斷信息"
           }
         }
