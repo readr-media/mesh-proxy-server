@@ -9,16 +9,21 @@ from src.cache import get_cache, set_cache
 import json
 from src.mongo_client import get_mongo_manager
 from src.error_handler import ErrorHandler
+import asyncio
 
 async def getSocialPage_optimized(member_id: str, index: int = 0, take: int = 0):
     """
     優化的社交頁面獲取函數，使用 MongoDB 連接池和非同步操作
     """
+    # request diagnostics
+    print(f"[py/socialpage] req member_id={member_id} index={index} take={take} env={os.environ.get('ENV')}")
+
     ### check cached data
     prefix = FastAPICache.get_prefix()
     cache_key = key_builder(f"{prefix}", f"socialpage:{member_id}")
     _, cached_data = await get_cache(cache_key)
     if cached_data:
+        print(f"[py/socialpage] cache hit key={cache_key} size={len(cached_data)}")
         social_page = json.loads(cached_data)
     else:
         social_stories, social_members = [], []
@@ -45,6 +50,7 @@ async def getSocialPage_optimized(member_id: str, index: int = 0, take: int = 0)
             }
             
             ErrorHandler.log_operation("GQL publishers processing", {"processed_count": len(publishers_table)})
+            print(f"[py/socialpage] publishers mapped={len(publishers_table)}")
         else:
             print(f"GQL publishers query failed: {gql_result['error']}")
             # 如果 GQL 查詢失敗，使用空字典繼續執行
@@ -65,6 +71,10 @@ async def getSocialPage_optimized(member_id: str, index: int = 0, take: int = 0)
             }
         
         followings = member_info.get('following', [])
+        mid_type = type(member_info.get('_id', None)).__name__
+        print(f"[py/socialpage] member found _id_type={mid_type} following_count={len(followings)}")
+        for i, v in enumerate(followings[:3]):
+            print(f"[py/socialpage] following[{i}]={v} ({type(v).__name__})")
         if not followings:
             # 如果沒有關注者，返回空的社交頁面
             return {
@@ -74,11 +84,16 @@ async def getSocialPage_optimized(member_id: str, index: int = 0, take: int = 0)
             }
         
         # 使用非同步查詢獲取關注者資訊
+        print(f"[py/socialpage] followings query $in size={len(followings)}")
         followings_info = await col_members.find({
             "_id": {
                 "$in": followings
             }
         }).to_list(length=None)
+        print(f"[py/socialpage] followings fetched={len(followings_info)}")
+        for i, info in enumerate(followings_info[:3]):
+            _id = info.get('_id')
+            print(f"[py/socialpage] followingsInfo[{i}]._id={_id} ({type(_id).__name__}) name={info.get('name')} nickname={info.get('nickname')}")
         
         # recommend following
         recommended_ids = set()
@@ -161,10 +176,12 @@ async def getSocialPage_optimized(member_id: str, index: int = 0, take: int = 0)
                     "avatar": info['avatar']
                 }
                 picks.append(comment)
+        print(f"[py/socialpage] picks total={len(picks)}")
         
         # sort by timestamp
         sorted_picks = sorted(picks, key=lambda item: item['ts'], reverse=True)[:config.SOCIALPAGE_PICK_MAXNUM]
         story_ids = list(set([pick['sid'] for pick in sorted_picks]))
+        print(f"[py/socialpage] storyIDs unique={len(story_ids)}")
         
         # make picks table for further reference
         picks_table = {}
@@ -174,6 +191,7 @@ async def getSocialPage_optimized(member_id: str, index: int = 0, take: int = 0)
 
         # get full story content and organized all the informations
         story_list = await col_stories.find({"_id": {"$in": story_ids}}).to_list(length=None)
+        print(f"[py/socialpage] stories fetched={len(story_list)}")
         full_story_info = {}
         for story in story_list:
             id = story['_id']
@@ -233,6 +251,7 @@ async def getSocialPage_optimized(member_id: str, index: int = 0, take: int = 0)
             "stories": social_stories,
             "members": social_members
         }
+        print(f"[py/socialpage] response stories={len(social_stories)} members={len(social_members)}")
         await set_cache(cache_key, json.dumps(social_page), config.SOCIALPAGE_CACHE_TIME)
     
     # support pagination
