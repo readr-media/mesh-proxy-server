@@ -277,7 +277,7 @@ async def search_endpoint(
       )
 
 @app.post('/socialpage')
-async def socialpage_pagination(socialPage: SocialPage):
+async def socialpage_pagination(socialPage: SocialPage, nocache: bool = False):
   '''
   Given member_id, return social_page based on index and take
   '''
@@ -289,7 +289,8 @@ async def socialpage_pagination(socialPage: SocialPage):
   try:
     # 使用優化的社交頁面函數
     from src.socialpage_optimized import getSocialPage_optimized
-    socialpage = await getSocialPage_optimized(member_id=member_id, index=index, take=take)
+    print(f"[py/socialpage] route nocache={nocache}")
+    socialpage = await getSocialPage_optimized(member_id=member_id, index=index, take=take, nocache=nocache)
     
     # log performance
     end_time = datetime.now().timestamp()

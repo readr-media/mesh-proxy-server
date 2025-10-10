@@ -11,17 +11,20 @@ from src.mongo_client import get_mongo_manager
 from src.error_handler import ErrorHandler
 import asyncio
 
-async def getSocialPage_optimized(member_id: str, index: int = 0, take: int = 0):
+async def getSocialPage_optimized(member_id: str, index: int = 0, take: int = 0, nocache: bool = False):
     """
     優化的社交頁面獲取函數，使用 MongoDB 連接池和非同步操作
     """
     # request diagnostics
     print(f"[py/socialpage] req member_id={member_id} index={index} take={take} env={os.environ.get('ENV')}")
+    print(f"[py/socialpage] nocache={nocache}")
 
     ### check cached data
     prefix = FastAPICache.get_prefix()
     cache_key = key_builder(f"{prefix}", f"socialpage:{member_id}")
-    _, cached_data = await get_cache(cache_key)
+    cached_data = None
+    if not nocache:
+        _, cached_data = await get_cache(cache_key)
     if cached_data:
         print(f"[py/socialpage] cache hit key={cache_key} size={len(cached_data)}")
         social_page = json.loads(cached_data)
@@ -252,7 +255,8 @@ async def getSocialPage_optimized(member_id: str, index: int = 0, take: int = 0)
             "members": social_members
         }
         print(f"[py/socialpage] response stories={len(social_stories)} members={len(social_members)}")
-        await set_cache(cache_key, json.dumps(social_page), config.SOCIALPAGE_CACHE_TIME)
+        if not nocache:
+            await set_cache(cache_key, json.dumps(social_page), config.SOCIALPAGE_CACHE_TIME)
     
     # support pagination
     if (index >= 0) and (take > 0):
